@@ -9,7 +9,7 @@ wrauth is a [WireGuard](https://www.wireguard.com/) management interface and IPv
 - supports existing [Authelia](https://www.authelia.com/) access control rules (with minimal additions) and user database.
 - allows site-specific headers and data to be specified.
 - is HTTPS TLSv1.3[^a] with only, which every major browser[^b] & library[^c] supports since ~2019 (except Internet Explorer of course).
-- [is multithreaded and goes fast.](#benchmarks)
+- [is multithreaded and goes fast.](docs/bench.md)
 
 ## Why?
 
@@ -22,16 +22,9 @@ wrauth is written in [Go](https://go.dev/) and it uses
 
 ## And?
 
-### nginx?
+### Documentation?
 
-example proxy config:
-```nginx
-server {
-
-}
-```
-
-### Benchmarks?
+[here](docs/README.md)
 
 ### Security?
 
@@ -40,17 +33,7 @@ server {
     - `172.16.0.0      -   172.31.255.255  (172.16/12 prefix)`
     - `192.168.0.0     -   192.168.255.255 (192.168/16 prefix)`
 - while this provides host authentication, there is **no guarantee the user is the same**.
-- ingress filtering has been best practice since a while[^4], but firewalling on the server is also **seriously recommended**. some simple `nftables` rules to make sure packets are being routed in and out of the same subnet and *only* on the WireGuard interface could prevent basic spoofing (but not [DoS](https://en.wikipedia.org/wiki/Denial-of-service_attack) or [MiTM](https://en.wikipedia.org/wiki/Man-in-the-middle_attack) attacks if your network is already compromised).
-
-```nftables
-flush ruleset
-
-table ip firewall {
-	chain ingress {
-		type filter hook input 
-	}
-}
-```
+- ingress filtering has been best practice since a while[^4], but firewalling on the server is also **seriously recommended**. some simple `nftables` [rules](docs/firewall.md) to make sure packets are being routed in and out of the same subnet and *only* on the WireGuard interface could prevent basic spoofing (but not [DoS](https://en.wikipedia.org/wiki/Denial-of-service_attack) or [MiTM](https://en.wikipedia.org/wiki/Man-in-the-middle_attack) attacks if your network is already compromised).
 
 
 [^a]: [RFC8446](https://www.rfc-editor.org/rfc/rfc8446.html) and a [nice article about it](https://blog.cloudflare.com/rfc-8446-aka-tls-1-3/)
