@@ -4,10 +4,18 @@
 
 wrauth is a [WireGuard](https://www.wireguard.com/) management interface and IPv4 authentication provider that:
 
-- has a web UI to manage (create, show, delete, link) WireGuard peers written in plain HTML and CSS, no JS.
 - extends existing [Authelia](https://www.authelia.com/) access control rules and user database by adding site specific headers and IP to user linking.
+- has a web UI to manage WireGuard peers (and for peers to manage themselves) written in plain HTML and CSS, no JS.
+    - create: create a new connection if none exist for an account.
+    - view: view existing connections as a QR code to scan (on WireGuard mobile) or as a `wireguard.conf` file.
+    - link: link a new connection to an existing account.
+    - delete: delete a connection from an account.
 - comes with [nginx](https://nginx.org/) [auth_request](https://nginx.org/en/docs/http/ngx_http_auth_request_module.html) capabilities out of the box.
-- [goes fast.](docs/bench.md)
+- [is multithreaded and goes fast.](docs/bench.md)
+
+### UI
+
+TODO
 
 ## Why?
 
@@ -17,12 +25,13 @@ the drive for automation is always present but this seemed to be a good project 
 
 ## How?
 
-wrauth is written in [Go](https://go.dev/) and it uses [fasthttp](https://github.com/valyala/fasthttp), [quicktemplate](https://github.com/valyala/quicktemplate), [wgctrl](https://pkg.go.dev/golang.zx2c4.com/wireguard/wgctrl) and [go-yaml](https://github.com/go-yaml/yaml). basically, it acts as an extremely thin layer on top of the Authelia AuthRequest endpoint (`/api/authz/auth-request`).  
-the basic external flow of authorization goes:
+wrauth is written in [Go](https://go.dev/) and it uses [fasthttp](https://github.com/valyala/fasthttp), [quicktemplate](https://github.com/valyala/quicktemplate), [wgctrl](https://pkg.go.dev/golang.zx2c4.com/wireguard/wgctrl) and [goccy/go-yaml](https://github.com/goccy/go-yaml). basically, it acts as an extremely thin layer on top of the Authelia AuthRequest endpoint (`/api/authz/auth-request`).  
+
+### external
 
 ![auth_flow](docs/media/wrauth_flow.png)
 
-the basic internal flow goes:
+### internal
 
 ![internal_flow](docs/media/wrauth_internal.png)
 
