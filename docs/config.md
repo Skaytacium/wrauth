@@ -55,7 +55,7 @@ admins:
 
 ```yaml
 # OPTIONAL: the address to listen on. use the 'unix:' prefix to specify a unix domain path
-# DEFAULT: '127.0.0.1:9092'
+# DEFAULT: 127.0.0.1:9092
 address: '127.0.0.1:9093'
 # REQUIRED: the full external address
 external: 'https://wrauth.example.com'
