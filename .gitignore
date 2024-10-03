@@ -4,3 +4,6 @@ go.sum
 # development configuration
 config.yaml
 db.yaml
+
+# binary
+wrauth
