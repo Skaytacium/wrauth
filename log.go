@@ -63,5 +63,5 @@ func Log[T any](level LogLevel, msg T) {
 		return
 	}
 
-	logger.Printf("%v", msg)
+	logger.Println("%v", msg)
 }
