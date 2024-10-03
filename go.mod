@@ -2,6 +2,8 @@ module github.com/Skaytacium/wrauth
 
 go 1.23.1
 
+require golang.zx2c4.com/wireguard/wgctrl v0.0.0-20230429144221-925a1e7659e6
+
 require (
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/fatih/color v1.10.0 // indirect
@@ -23,5 +25,4 @@ require (
 	golang.org/x/sys v0.25.0 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	golang.zx2c4.com/wireguard v0.0.0-20230325221338-052af4a8072b // indirect
-	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20230429144221-925a1e7659e6 // indirect
 )

@@ -6,7 +6,16 @@ the configuration is split into 2 parts:
 - wrauth db, which is a neighbouring `db.yaml` file.
 - wrauth configuration, which is a neighbouring `config.yaml` file.
 
+use "$<variable_name>" to add dynamic variables to some options (listed with `# DYNAMIC`)
+
 both files are parsed on program start and on change.
+
+currently supported variables:
+```
+user:   the user making the request.
+group:  the group that the aforementioned user is in. if multiple groups are present, they're seperated by a comma and space.
+ip:     the ip that has been requested with
+```
 
 ### wrauth db
 
@@ -25,18 +34,22 @@ rules:
     user: 'bob'
 
 # REQUIRED: the site specific headers to add. also sequential.
-site:
+data:
   # MINIMUM: 0
     # REQUIRED: the domain to match
+    # DYNAMIC
   - domain: '/^(db|test)\.example\.com$/'
     # OPTIONAL: a specific set of users/groups to match. same as Authelia subject
     # DEFAULT: nil (match all)
-    subject: 'group:devs'
+    subject:
+      - 'group:devs'
     # REQUIRED: the headers to add
-    data:
+    headers:
       # MINIMUM: 1
-      # REQUIRED: header_name: value
-      X-Auth-DB-Roles: 'devdb'
+        # REQUIRED: [ header name, header value ]
+        # DYNAMIC
+        - [ "X-AuthDB-User", "$user" ]
+        - [ "X-AuthDB-Roles", "devdb" ]
 
 # REQUIRED: site admins, who can control all peers
 admins:
@@ -80,19 +93,22 @@ authelia:
 # REQUIRED: the wireguard interfaces to manage, and their respective addresses
 interfaces:
   # MINIMUM: 1
-    # REQUIRED: name and listening address
-  - wg0: '10.0.0.1/32'
+    # REQUIRED: name of the interface
+  - name: 'wg0'
+    # REQUIRED: listening address (subnet mask defaults to 32)
+    addr: '10.0.0.1'
     # OPTIONAL: the configuration file
     # DEFAULT: /etc/wireguard/<name>.conf
     conf: '/etc/wireguard/wg.conf'
     # OPTIONAL: the duration in seconds after which the peer list cache is updated (happens on a request that misses cache as well)
     # DEFAULT: 15
     watch: 5
-  - wg1: '172.16.0.1/32'
+  - name: 'wg1'
+    addr: '172.16.0.1'
     # OPTIONAL: to internally mark that only addresses from this IP range will be allowed
     # DEFAULT: <listening_address>/24
     subnet: '172.16.0.0/16'
     # OPTIONAL: the duration in seconds from the last handshake after which the connection is considered "closed"
     # DEFAULT: 150
-    handshake: 300
+    shake: 300
 ```
