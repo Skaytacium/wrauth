@@ -20,9 +20,8 @@ ip:     the ip that has been requested with
 ### wrauth db
 
 ```yaml
-# REQUIRED: the rules to match. applied sequentially.
+# OPTIONAL: the rules to match. applied sequentially.
 rules:
-  # MINIMUM: 0
     # EITHER: REQUIRED: the addresses to match (named networks from Authelia can be used here)
   - ips:
     - '10.0.0.0/30'
@@ -33,23 +32,22 @@ rules:
   - pubkey: 'MJ6JoquFLTf419V5dzkcV1z8TY8SIuPyaSH/1SBBP1o='
     user: 'bob'
 
-# REQUIRED: the site specific headers to add. also sequential.
+# OPTIONAL: the site specific headers to add. also sequential.
 data:
-  # MINIMUM: 0
     # REQUIRED: the domain to match
     # DYNAMIC
   - domain: '/^(db|test)\.example\.com$/'
     # OPTIONAL: a specific set of users/groups to match. same as Authelia subject
-    # DEFAULT: nil (match all)
+    # DEFAULT: match all
     subject:
       - 'group:devs'
     # REQUIRED: the headers to add
     headers:
       # MINIMUM: 1
-        # REQUIRED: [ header name, header value ]
+        # REQUIRED: header name: header value
         # DYNAMIC
-        - [ "X-AuthDB-User", "$user" ]
-        - [ "X-AuthDB-Roles", "devdb" ]
+        - X-AuthDB-User: "$user"
+        - X-AuthDB-Roles: "devdb"
 
 # REQUIRED: site admins, who can control all peers
 admins:
@@ -83,12 +81,6 @@ theme: 'gruvbox-dark'
 authelia:
   # REQUIRED: the Authelia configuration
   config: '/opt/authelia/configuration.yml'
-  # OPTIONAL: the Authelia user database
-  # DEFAULT: authelia.config->authetication_backend.file.path
-  userdb: '/var/db/users.yaml'
-  # OPTIONAL: the login page for Authelia
-  # DEFAULT: authelia.config->session.cookies.authelia_url
-  login: 'https://extauth.example.com/login'
 
 # REQUIRED: the wireguard interfaces to manage, and their respective addresses
 interfaces:
