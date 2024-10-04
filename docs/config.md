@@ -19,15 +19,15 @@ ip:     the ip that has been requested with
 ### wrauth db
 
 ```yaml
-# OPTIONAL: the rules to match. applied sequentially.
+# OPTIONAL: the rules to match. only IPs that match one of these will be authorized. applied sequentially.
 rules:
-    # EITHER: REQUIRED: the addresses to match (named networks from Authelia can be used here)
+    # EITHER: REQUIRED: the addresses to match
   - ips:
     - '10.0.0.0/30'
-    - '10.0.0.10'
+    - '10.0.0.10/32'
     # REQUIRED: the user to allot
     user: 'alice'
-    # OR: REQUIRED: the publickey to match
+    # OR: REQUIRED: the publickey (from WireGuard) to match
   - pubkey: 'MJ6JoquFLTf419V5dzkcV1z8TY8SIuPyaSH/1SBBP1o='
     user: 'bob'
 
@@ -51,9 +51,9 @@ data:
 # REQUIRED: site admins, who can control all peers
 admins:
   # MINIMUM: 1
-    # EITHER: REQUIRED: same as rules.ips
+    # EITHER: REQUIRED: the addresses to allow admin access to
   - ips: '172.16.0.10'
-    # OR: REQUIRED: same as rules.pubkey
+    # OR: REQUIRED: the public key(s) to allow admin access to
   - pubkey: 'MJ6JoquFLTf419V5dzkcV1z8TY8SIuPyaSH/1SBBP1o='
     # OR: REQUIRED: the user to match
   - user: 'admin'

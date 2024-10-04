@@ -1,8 +1,8 @@
 package main
 
 import (
+	"net"
 	"path/filepath"
-	"strings"
 
 	"github.com/alexflint/go-arg"
 	"github.com/fsnotify/fsnotify"
@@ -15,44 +15,24 @@ var Args struct {
 	DB     string `arg:"-d,--databse" help:"location of wrauth database" default:"./db.yaml"`
 }
 
-var Conf Config
+var Conf = Config{
+	Address: "127.0.0.1:9092",
+	Log:     LogInfo,
+	Theme:   "gruvbox-dark",
+}
 var Db DB
 var Authelia AutheliaConfiguration
 var WGs []*wgtypes.Device
 
-func Store() {
-	if err := Parse(&Conf, Args.Config); err != nil {
-		Log(LogFatal, "error while parsing main config: %v", err)
-	}
-	if err := Parse(&Db, Args.DB); err != nil {
-		Log(LogFatal, "error while parsing database config: %v", err)
-	}
-	if err := Parse(&Authelia, Conf.Authelia.Config); err != nil {
-		Log(LogFatal, "error while parsing Authelia configuration: %v", err)
-	}
-	if err := Parse(&Db, Authelia.Authentication_backend.File.Path); err != nil {
-		Log(LogFatal, "error while parsing Authelia user database: %v", err)
-	}
-
-	Authelia.Server.Address = strings.Replace(Authelia.Server.Address, "tcp4", "http", 1)
-
-	Log(LogDebug, "%+v", Conf)
-	Log(LogDebug, "%+v", Authelia)
-	Log(LogDebug, "%+v", Db)
-}
+// list of (subnet mask, ip address)
+var Peers []net.IPNet
 
 func main() {
 	arg.MustParse(&Args)
-	Store()
-	AddDefaults()
-
-	wgclient, err := wgctrl.New()
-	if err != nil {
-		Log(LogFatal, "couldn't obtain WireGuard devices: %v", err)
+	if err := Store(); err != nil {
+		Log(LogFatal, "error while parsing: %v", err)
 	}
-	defer wgclient.Close()
-
-	LoadWGs(wgclient)
+	AddDefaults()
 
 	fswatch, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -67,7 +47,12 @@ func main() {
 		Log(LogFatal, "couldn't watch wrauth's directory: %v", err)
 	}
 
-	Log(LogInfo, "wrauth ready")
+	wgclient, err := wgctrl.New()
+	if err != nil {
+		Log(LogFatal, "couldn't obtain WireGuard devices: %v", err)
+	}
+	defer wgclient.Close()
 
-	<-make(chan bool)
+	Log(LogInfo, "listening on: %v", Conf.Address)
+	Listen()
 }

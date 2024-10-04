@@ -2,100 +2,52 @@ package main
 
 import (
 	"fmt"
-	"os"
+	"net"
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/goccy/go-yaml"
 )
 
-type Rule struct {
-	Ips    []string
-	Pubkey string
-	User   string
-}
+type IP net.IPNet
 
-type Admin struct {
-	Ips []string
-	// embedding rule doesn't work for yaml
-	Pubkey string
-	User   string
-	Group  string
-}
+func (ip *IP) UnmarshalYAML(data []byte) error {
+	sData := string(data)
 
-type Header struct {
-	Domain  string
-	Subject []string
-	Headers []map[string]string
-}
-
-type User struct {
-	Disabled    bool
-	DisplayName string
-	Email       string
-	Groups      []string
-}
-
-type DB struct {
-	Rules  []Rule
-	Admins []Admin
-	Data   []Header
-	Users  map[string]User
-}
-
-type Interface struct {
-	Name   string
-	Addr   string
-	Conf   string
-	Watch  int
-	Subnet string
-	Shake  int
-}
-
-type Config struct {
-	Address  string
-	External string
-	Log      LogLevel
-	Theme    string
-	Authelia struct {
-		Config string
-	}
-	Interfaces []Interface
-}
-
-type Network struct {
-	Name     string
-	Networks []string
-}
-
-type AutheliaConfiguration struct {
-	Server struct {
-		Address string
-	}
-	Authentication_backend struct {
-		File struct {
-			Path string
-		}
-	}
-	Access_control struct {
-		Networks []Network
-	}
-	Session struct {
-		Cookies []struct {
-			Domain string
-		}
-	}
-}
-
-// no clue why generics are needed here, but its a rare operation
-func Parse[T any](file *T, path string) error {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("error while opening file %v: %w", path, err)
+	if string(sData[0]) == "\"" || string(sData[0]) == "'" {
+		sData = sData[1 : len(sData)-1]
 	}
 
-	if err := yaml.Unmarshal(data, file); err != nil {
-		return fmt.Errorf("error while parsing file %v: %w", path, err)
+	_, a, err := net.ParseCIDR(sData)
+
+	if err == nil {
+		ip.IP = a.IP
+		ip.Mask = a.Mask
+	}
+
+	return err
+}
+
+func Store() error {
+	if err := ParseYaml(&Conf, Args.Config); err != nil {
+		return fmt.Errorf("error while parsing configuration: %w", err)
+	}
+	if err := ParseYaml(&Db, Args.DB); err != nil {
+		return fmt.Errorf("error while parsing database: %w", err)
+	}
+	if err := ParseYaml(&Authelia, Conf.Authelia.Config); err != nil {
+		return fmt.Errorf("error while parsing Authelia configuration: %w", err)
+	}
+	if err := ParseYaml(&Db, Authelia.Authentication_backend.File.Path); err != nil {
+		return fmt.Errorf("error while parsing Authelia users: %w", err)
+	}
+
+	Authelia.Server.Address = strings.Replace(Authelia.Server.Address, "tcp4", "http", 1)
+
+	if len(Conf.Interfaces) == 0 {
+		return fmt.Errorf("no interfaces configured")
+	}
+	if len(Db.Admins) == 0 {
+		return fmt.Errorf("no admins configured")
 	}
 
 	return nil
@@ -109,8 +61,11 @@ func AddDefaults() {
 		if inf.Watch == 0 {
 			Conf.Interfaces[i].Watch = 15
 		}
-		if inf.Subnet == "" {
-			Conf.Interfaces[i].Subnet = strings.Join(strings.Split(inf.Addr, ".")[0:3], ".") + ".0" + "/24"
+		if inf.Subnet.IP == nil {
+			Conf.Interfaces[i].Subnet = IP{
+				IP:   inf.Addr.IP,
+				Mask: net.IPv4Mask(255, 255, 255, 0),
+			}
 		}
 		if inf.Shake == 0 {
 			Conf.Interfaces[i].Shake = 150
@@ -119,6 +74,9 @@ func AddDefaults() {
 }
 
 func WatchConfigs(w *fsnotify.Watcher) {
+	// no clue why write requests happen twice, but simple fix
+	send := true
+
 	for {
 		select {
 		case err, ok := <-w.Errors:
@@ -132,7 +90,12 @@ func WatchConfigs(w *fsnotify.Watcher) {
 			}
 			if ev.Op == fsnotify.Write && (strings.Contains(ev.Name, Args.Config) || strings.Contains(ev.Name, Args.DB)) {
 				Log(LogInfo, "file updated: %v", ev.Name)
-				Store()
+				if send {
+					if err := Store(); err != nil {
+						Log(LogError, "error while parsing: %v", err)
+					}
+				}
+				send = !send
 			}
 		}
 	}

@@ -2,7 +2,7 @@
 
 ## Index?
 
-- [benchmarks](bench.md)
+- [performance](bench.md)
 - [configuration reference](config.md)
 - [firewall](firewall.md)
 - [reverse proxy](reverse.md)
