@@ -3,13 +3,12 @@
 ## What?
 
 the configuration is split into 2 parts:
-- wrauth db, which is a neighbouring `db.yaml` file.
-- wrauth configuration, which is a neighbouring `config.yaml` file.
+- wrauth db, which is a `db.yaml` file.
+- wrauth configuration, which is a `config.yaml` file.
 
-use "$<variable_name>" to add dynamic variables to some options (listed with `# DYNAMIC`)
+both files **must be in the same directory**. they are parsed on program start and on change and their position can be specified using command line arguments (check `wrauth --help`).
 
-both files are parsed on program start and on change.
-
+use `$<variable_name>` to add dynamic variables to some options (listed with `# DYNAMIC`)  
 currently supported variables:
 ```
 user:   the user making the request.

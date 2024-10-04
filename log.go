@@ -35,33 +35,36 @@ func (lvl *LogLevel) UnmarshalYAML(data []byte) error {
 	case "debug":
 		*lvl = LogDebug
 	default:
-		return fmt.Errorf("config.loglevel value invalid")
+		return fmt.Errorf("loglevel value invalid")
 	}
+
 	return nil
 }
 
-var logger = log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmsgprefix)
+func (lvl *LogLevel) UnmarshalText(text []byte) error {
+	return lvl.UnmarshalYAML(text)
+}
 
-func Log[T any](level LogLevel, msg T) {
+var Logger = log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmsgprefix)
+
+func Log(level LogLevel, fstring string, args ...any) {
 	if level > Conf.Log {
 		return
 	}
 
 	switch level {
 	case LogFatal:
-		logger.SetPrefix("fatal: ")
-		logger.Fatalf("%v", msg)
+		Logger.SetPrefix("fatal: ")
+		Logger.Fatalf(fstring, args...)
 	case LogError:
-		logger.SetPrefix("error: ")
+		Logger.SetPrefix("error: ")
 	case LogWarn:
-		logger.SetPrefix("warn: ")
+		Logger.SetPrefix("warn: ")
 	case LogInfo:
-		logger.SetPrefix("info: ")
+		Logger.SetPrefix("info: ")
 	case LogDebug:
-		logger.SetPrefix("debug: ")
-		logger.Printf("%+v", msg)
-		return
+		Logger.SetPrefix("debug: ")
 	}
 
-	logger.Println("%v", msg)
+	Logger.Printf(fstring, args...)
 }

@@ -25,7 +25,7 @@ the drive for automation is always present but this seemed to be a good project 
 
 ## How?
 
-wrauth is written in [Go](https://go.dev/) and it uses [fasthttp](https://github.com/valyala/fasthttp), [quicktemplate](https://github.com/valyala/quicktemplate), [wgctrl](https://pkg.go.dev/golang.zx2c4.com/wireguard/wgctrl) and [goccy/go-yaml](https://github.com/goccy/go-yaml). basically, it acts as an extremely thin layer on top of the Authelia AuthRequest endpoint (`/api/authz/auth-request`).  
+wrauth is written in [Go](https://go.dev/) and it uses [fasthttp](https://github.com/valyala/fasthttp), [quicktemplate](https://github.com/valyala/quicktemplate), [wgctrl](https://pkg.go.dev/golang.zx2c4.com/wireguard/wgctrl), [goccy/go-yaml](https://github.com/goccy/go-yaml), [fsnotify](https://github.com/fsnotify/fsnotify) and [go-arg](https://github.com/alexflint/go-arg). basically, it acts as an extremely thin layer on top of the Authelia AuthRequest endpoint (`/api/authz/auth-request`).  
 
 ### external
 

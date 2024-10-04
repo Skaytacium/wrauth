@@ -6,12 +6,14 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl"
 )
 
-func CacheWG(client *wgctrl.Client) {
+func LoadWGs(client *wgctrl.Client) error {
 	for _, inf := range Conf.Interfaces {
 		dev, err := client.Device(inf.Name)
 		if err != nil {
-			Log(LogFatal, fmt.Sprintf("WireGuard device %v does not exist", inf.Name))
+			return fmt.Errorf("error while getting WireGuard device: %w", err)
 		}
-		WGCache = append(WGCache, dev)
+		WGs = append(WGs, dev)
 	}
+
+	return nil
 }

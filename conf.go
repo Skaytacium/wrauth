@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/goccy/go-yaml"
 )
 
@@ -85,16 +87,18 @@ type AutheliaConfiguration struct {
 	}
 }
 
-func Parse[T any](file *T, path string) {
+// no clue why generics are needed here, but its a rare operation
+func Parse[T any](file *T, path string) error {
 	data, err := os.ReadFile(path)
-
 	if err != nil {
-		Log(LogFatal, err)
+		return fmt.Errorf("error while opening file %v: %w", path, err)
 	}
 
 	if err := yaml.Unmarshal(data, file); err != nil {
-		Log(LogFatal, yaml.FormatError(err, true, true))
+		return fmt.Errorf("error while parsing file %v: %w", path, err)
 	}
+
+	return nil
 }
 
 func AddDefaults() {
@@ -110,6 +114,26 @@ func AddDefaults() {
 		}
 		if inf.Shake == 0 {
 			Conf.Interfaces[i].Shake = 150
+		}
+	}
+}
+
+func WatchConfigs(w *fsnotify.Watcher) {
+	for {
+		select {
+		case err, ok := <-w.Errors:
+			if !ok {
+				return
+			}
+			Log(LogFatal, "error watching files %v", err)
+		case ev, ok := <-w.Events:
+			if !ok {
+				return
+			}
+			if ev.Op == fsnotify.Write && (strings.Contains(ev.Name, Args.Config) || strings.Contains(ev.Name, Args.DB)) {
+				Log(LogInfo, "file updated: %v", ev.Name)
+				Store()
+			}
 		}
 	}
 }

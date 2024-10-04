@@ -2,7 +2,10 @@
 
 ## What?
 
-benchmarks, atleast on my machines for wrauth. you can always bench on your machine using `go test -bench=` and then one of either `auth`, `authuds`, `wrauth`, `wrauthuds`  
+benchmarks, atleast on my machines for wrauth. you can always bench on your machine using `go test -bench=` and one of:
+- `fhttpAuthOK`
+
+these were done during development as well, to make sure everything's up to speed.
 
 ## And?
 
