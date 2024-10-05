@@ -7,25 +7,19 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-type IP struct {
-	Addr [4]byte
-	Mask uint32
-}
-
 func (ip *IP) UnmarshalYAML(data []byte) error {
-	sData := string(data)
 
-	if string(sData[0]) == "\"" || string(sData[0]) == "'" {
-		sData = sData[1 : len(sData)-1]
+	// ugh
+	if data[0] == []byte("\"")[0] || data[0] == []byte("'")[0] {
+		data = data[1 : len(data)-1]
 	}
 
-	// _, a, err := net.ParseCIDR(sData)
-	// if err == nil {
-	// 	ip.IP = a.IP
-	// 	ip.Mask = a.Mask
-	// }
+	err := FastUCIDR(data, &ip.Addr, &ip.Mask)
 
-	// return err
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -63,12 +57,13 @@ func AddDefaults() {
 		if inf.Watch == 0 {
 			Conf.Interfaces[i].Watch = 15
 		}
-		// if inf.Subnet.addr == nil {
-		// 	Conf.Interfaces[i].Subnet = IP{
-		// 		IP:   inf.Addr.IP,
-		// 		Mask: net.IPv4Mask(255, 255, 255, 0),
-		// 	}
-		// }
+		if inf.Subnet.Mask == 0 {
+			Conf.Interfaces[i].Subnet = IP{
+				// default subnet mask of 24
+				Addr: inf.Addr.Addr & 0xffffff00,
+				Mask: 0xffffff00,
+			}
+		}
 		if inf.Shake == 0 {
 			Conf.Interfaces[i].Shake = 150
 		}
@@ -91,10 +86,14 @@ func WatchConfigs(w *fsnotify.Watcher) {
 				return
 			}
 			if ev.Op == fsnotify.Write && (strings.Contains(ev.Name, Args.Config) || strings.Contains(ev.Name, Args.DB)) {
-				Log(LogInfo, "file updated: %v", ev.Name)
 				if send {
+					Log(LogInfo, "file updated: %v", ev.Name)
 					if err := Store(); err != nil {
 						Log(LogError, "error while parsing: %v", err)
+					}
+					Matches = nil
+					if err := UpdateCache(); err != nil {
+						Log(LogError, "error while caching: %v", err)
 					}
 				}
 				send = !send

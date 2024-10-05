@@ -1,7 +1,6 @@
 package main
 
 import (
-	"net"
 	"testing"
 
 	"github.com/valyala/fasthttp"
@@ -39,30 +38,4 @@ func BenchmarkFhttpAuth30(b *testing.B) {
 
 		return
 	})
-}
-
-func BenchmarkNetParseCIDR(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		net.ParseCIDR("129.168.1.23/32")
-	}
-}
-
-func BenchmarkFastParseCIDR(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		var ip IP
-		FastParseCIDR([]byte("129.168.1.23/32"), &ip)
-	}
-}
-
-func BenchmarkNetParseIP(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		net.ParseIP("129.168.1.23")
-	}
-}
-
-func BenchmarkFastParseIP(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		var ip [4]byte
-		FastParseIP([]byte("129.168.1.23"), &ip)
-	}
 }

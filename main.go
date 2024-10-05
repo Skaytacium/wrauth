@@ -26,6 +26,7 @@ var Matches []IP
 
 func main() {
 	arg.MustParse(&Args)
+
 	if err := Store(); err != nil {
 		Log(LogFatal, "error while parsing: %v", err)
 	}
@@ -58,8 +59,9 @@ func main() {
 	}
 	defer wgclient.Close()
 
-	CachePubkeys()
-
+	if err := UpdateCache(); err != nil {
+		Log(LogFatal, "error while caching: %v", err)
+	}
 	Log(LogDebug, "%+v", Matches)
 
 	Log(LogInfo, "listening on: %v", Conf.Address)

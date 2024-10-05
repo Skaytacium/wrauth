@@ -35,63 +35,184 @@ func ParseYaml[T any](file *T, path string) error {
 	return nil
 }
 
-// >2x faster than net.ParseIP
-func FastParseIP(ip []byte, dst *[4]byte) {
+// ~1.8x faster than net.ParseIP
+// >2x faster without safety
+func FastIP(data []byte, addr *[4]byte) error {
 	var rarr = [3]byte{1, 10, 100}
-	var tmp byte
-	var i, rad byte = 0, 2
+	var tmp, rad, n, set byte = 0, 0, 3, 0
 
-	for _, v := range ip {
+	for i := len(data) - 1; i > -1; i-- {
 		// ASCII .
-		if v == 0x2E {
-			dst[i] = tmp / rarr[rad+1]
-			rad = 2
+		if data[i] == 0x2E {
+			addr[n] = tmp
 			tmp = 0
-			i++
-			continue
-		}
-		tmp += (v - 0x30) * rarr[rad]
-		rad--
-	}
-
-	dst[3] = tmp / rarr[rad+1]
-}
-
-// ~4x faster than net.ParseCIDR
-// probably because it has very basic error checking
-func FastParseCIDR(ip []byte, dst *IP) error {
-	var rarr = [3]byte{1, 10, 100}
-	var tmp byte
-	var i, rad byte = 0, 2
-	var set bool = false
-
-	for _, v := range ip {
-		// ASCII /
-		if v == 0x2F {
-			dst.Addr[3] = tmp / rarr[rad+1]
-			if !set {
-				rad = 1
-				tmp = 0
-				set = true
-				continue
-			}
-			// ASCII .
-		} else if v == 0x2E {
-			dst.Addr[i] = tmp / rarr[rad+1]
-			rad = 2
-			tmp = 0
-			i++
+			rad = 0
+			n--
+			set++
 			continue
 		}
 		// ASCII 0
-		tmp += (v - 0x30) * rarr[rad]
-		rad--
+		tmp += (data[i] - 0x30) * rarr[rad]
+		rad++
 	}
-	dst.Mask = uint32(0xffffffff << (32 - (tmp / rarr[rad+1])))
 
-	if !set {
-		return fmt.Errorf("data not in CIDRformat")
+	addr[0] = tmp
+
+	if set != 3 {
+		return fmt.Errorf("address not in proper format")
 	} else {
 		return nil
 	}
+}
+
+// 2-4ns slower
+func FastUIP(data []byte, addr *uint32) error {
+	var rarr = [3]byte{1, 10, 100}
+	var rad, n, set byte
+	var tmp uint32
+
+	*addr = 0
+	for i := len(data) - 1; i > -1; i-- {
+		// ASCII .
+		if data[i] == 0x2E {
+			*addr |= tmp << n
+			tmp = 0
+			rad = 0
+			n += 8
+			set++
+			continue
+		}
+		// ASCII 0
+		tmp += uint32((data[i] - 0x30) * rarr[rad])
+		rad++
+	}
+
+	*addr |= tmp << 24
+
+	if set != 3 {
+		return fmt.Errorf("address not in proper format")
+	} else {
+		return nil
+	}
+}
+
+// ~7x faster than net.ParseCIDR
+// ~8.5x faster without safety
+func FastCIDR(data []byte, addr *[4]byte, mask *uint32) error {
+	var rarr = [3]byte{1, 10, 100}
+	var tmp, rad, n, set byte = 0, 0, 3, 0
+
+	for i := len(data) - 1; i > -1; i-- {
+		// ASCII /
+		if data[i] == 0x2F {
+			*mask = uint32(0xffffffff << (32 - tmp))
+			tmp = 0
+			rad = 0
+			set++
+			continue
+			// ASCII .
+		} else if data[i] == 0x2E {
+			addr[n] = tmp
+			tmp = 0
+			rad = 0
+			n--
+			set++
+			continue
+		}
+		// ASCII 0
+		tmp += (data[i] - 0x30) * rarr[rad]
+		rad++
+	}
+
+	addr[0] = tmp
+
+	if set != 4 {
+		return fmt.Errorf("address not in CIDR format")
+	} else {
+		return nil
+	}
+}
+
+// 2-4ns slower
+func FastUCIDR(data []byte, addr *uint32, mask *uint32) error {
+	var rarr = [3]byte{1, 10, 100}
+	var rad, n, set byte
+	var tmp uint32
+
+	*addr = 0
+	for i := len(data) - 1; i > -1; i-- {
+		// ASCII /
+		if data[i] == 0x2F {
+			*mask = 0xffffffff << (32 - tmp)
+			rad = 0
+			tmp = 0
+			set++
+			continue
+			// ASCII .
+		} else if data[i] == 0x2E {
+			*addr |= tmp << n
+			tmp = 0
+			rad = 0
+			n += 8
+			set++
+			continue
+		}
+		// ASCII 0
+		tmp += uint32((data[i] - 0x30) * rarr[rad])
+		rad++
+	}
+
+	*addr |= tmp << 24
+
+	if set != 4 {
+		return fmt.Errorf("address not in CIDR format")
+	} else {
+		return nil
+	}
+}
+
+func ToUint(data [4]byte) uint32 {
+	var tmp uint32
+
+	tmp |= uint32(data[0]) << 24
+	tmp |= uint32(data[1]) << 16
+	tmp |= uint32(data[2]) << 8
+	tmp |= uint32(data[3])
+
+	return tmp
+}
+
+func To4Byte(data uint32) [4]byte {
+	var tmp [4]byte
+
+	tmp[0] = byte(data >> 24)
+	tmp[1] = byte(data >> 16)
+	tmp[2] = byte(data >> 8)
+	tmp[3] = byte(data)
+
+	return tmp
+}
+
+func Bits(data uint32) byte {
+	var n byte
+
+	for data != 0 {
+		n += byte(data & 1)
+		data >>= 1
+	}
+
+	return n
+}
+
+func CompareUIP(a, b IP) bool {
+	return (a.Addr^b.Addr)&b.Mask == 0
+}
+
+func Find[T any](a *[]T, c func(a T) bool) *T {
+	for _, x := range *a {
+		if c(x) {
+			return &x
+		}
+	}
+	return nil
 }
