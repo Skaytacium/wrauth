@@ -22,16 +22,6 @@ func Listen() {
 
 func check(header *fasthttp.RequestHeader) fasthttp.RequestConfig {
 	if CompareSlice(header.RequestURI(), []byte("/auth")) {
-		if recip := header.Peek("X-Forwarded-For"); len(recip) > 0 {
-			var addr uint32
-			FastUIP(recip, &addr)
-			// for _, ip := range Matches {
-			// 	CompareUIP(addr, Matches)
-			// }
-		} else {
-			Log(LogError, "no X-Forwarded-For header found in auth request")
-		}
-
 		return fasthttp.RequestConfig{
 			// 0 sets it to default, so 1 it is
 			MaxRequestBodySize: 1,
@@ -42,5 +32,20 @@ func check(header *fasthttp.RequestHeader) fasthttp.RequestConfig {
 }
 
 func handle(ctx *fasthttp.RequestCtx) {
-	ctx.SetStatusCode(200)
+	if recip := ctx.Request.Header.Peek("X-Forwarded-For"); len(recip) > 0 {
+		var addr uint32
+		FastUIP(recip, &addr)
+
+		ctx.SetStatusCode(403)
+
+		for _, ip := range Matches {
+			if CompareUIP(&IP{Addr: addr, Mask: 0xffffffff}, &ip.Ip) {
+				ctx.SetStatusCode(200)
+			}
+		}
+
+	} else {
+		Log(LogError, "no X-Forwarded-For header found in auth request")
+		ctx.SetStatusCode(400)
+	}
 }

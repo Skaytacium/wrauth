@@ -22,7 +22,7 @@ var Conf = Config{
 var Db DB
 var Authelia AutheliaConfiguration
 var WGs []*wgtypes.Device
-var Matches []IP
+var Matches []Match
 
 func main() {
 	arg.MustParse(&Args)

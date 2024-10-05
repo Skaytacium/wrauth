@@ -3,8 +3,6 @@ package main
 import "fmt"
 
 type IP struct {
-	// comparisions are 18x faster than net.IP.equals and [4]byte comparision
-	// makes up for the 2-4ns hit that FastUIP/UCDIR gives
 	Addr uint32
 	Mask uint32
 }
@@ -14,6 +12,13 @@ func (ip IP) String() string {
 	return fmt.Sprintf("%v.%v.%v.%v/%v", bytes[0], bytes[1], bytes[2], bytes[3], Bits(ip.Mask))
 }
 
+type Match struct {
+	User
+	Ip   IP
+	Name string
+}
+
+// YAML
 // # db
 // ## rules
 type Rule struct {

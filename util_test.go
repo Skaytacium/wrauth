@@ -57,10 +57,10 @@ func BenchmarkNetCompIP(b *testing.B) {
 
 func BenchmarkUCompIP(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		if CompareUIP(IP{
+		if CompareUIP(&IP{
 			Addr: 0xf1f2f3f4,
 			Mask: 0xffffffff,
-		}, IP{
+		}, &IP{
 			Addr: 0xf1f2f3f4,
 			Mask: 0xffffff00,
 		}) {
