@@ -85,7 +85,7 @@ set $uri_wrauth http://127.0.0.1:9092/
 location /int/auth {
 	internal;
 
-	proxy_pass $uri_wrauth/authelia/nginx;
+	proxy_pass $uri_wrauth/auth;
 
 	proxy_set_header X-Original-Method $request_method;
 	proxy_set_header X-Original-URL $scheme://$http_host$request_uri;

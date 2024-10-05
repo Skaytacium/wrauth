@@ -6,7 +6,8 @@ the configuration is split into 2 parts:
 - wrauth db, which is a `db.yaml` file.
 - wrauth configuration, which is a `config.yaml` file.
 
-both files **must be in the same directory**. they are parsed on program start and on change and their position can be specified using command line arguments (check `wrauth --help`).
+both files **must be in the same directory**. they are parsed on program start and on change and their position can be specified using command line arguments (check `wrauth --help`).  
+all IP addresses **must** be in CIDR notation (have a subnet mask at the end, use `/32` as an equivalent to no subnet).
 
 use `$<variable_name>` to add dynamic variables to some options (listed with `# DYNAMIC`)  
 currently supported variables:
@@ -27,8 +28,9 @@ rules:
     - '10.0.0.10/32'
     # REQUIRED: the user to allot
     user: 'alice'
-    # OR: REQUIRED: the publickey (from WireGuard) to match
-  - pubkey: 'MJ6JoquFLTf419V5dzkcV1z8TY8SIuPyaSH/1SBBP1o='
+    # OR: REQUIRED: the public keys (from WireGuard) to match
+  - pubkeys: 
+      - 'MJ6JoquFLTf419V5dzkcV1z8TY8SIuPyaSH/1SBBP1o='
     user: 'bob'
 
 # OPTIONAL: the site specific headers to add. also sequential.
@@ -51,13 +53,13 @@ data:
 # REQUIRED: site admins, who can control all peers
 admins:
   # MINIMUM: 1
-    # EITHER: REQUIRED: the addresses to allow admin access to
-  - ips: '172.16.0.10'
-    # OR: REQUIRED: the public key(s) to allow admin access to
+    # EITHER: REQUIRED: the address to allow admin access to
+  - ip: '172.16.0.10/32'
+    # OR: REQUIRED: the public key to allow admin access to
   - pubkey: 'MJ6JoquFLTf419V5dzkcV1z8TY8SIuPyaSH/1SBBP1o='
-    # OR: REQUIRED: the user to match
+    # OR: REQUIRED: the user to allow admin access to
   - user: 'admin'
-    # OR: REQUIRED: the group to match
+    # OR: REQUIRED: the group to allow admin access to
   - group: 'admins'
 ```
 

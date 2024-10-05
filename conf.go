@@ -2,13 +2,15 @@ package main
 
 import (
 	"fmt"
-	"net"
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
 )
 
-type IP net.IPNet
+type IP struct {
+	Addr [4]byte
+	Mask uint32
+}
 
 func (ip *IP) UnmarshalYAML(data []byte) error {
 	sData := string(data)
@@ -17,14 +19,14 @@ func (ip *IP) UnmarshalYAML(data []byte) error {
 		sData = sData[1 : len(sData)-1]
 	}
 
-	_, a, err := net.ParseCIDR(sData)
+	// _, a, err := net.ParseCIDR(sData)
+	// if err == nil {
+	// 	ip.IP = a.IP
+	// 	ip.Mask = a.Mask
+	// }
 
-	if err == nil {
-		ip.IP = a.IP
-		ip.Mask = a.Mask
-	}
-
-	return err
+	// return err
+	return nil
 }
 
 func Store() error {
@@ -61,12 +63,12 @@ func AddDefaults() {
 		if inf.Watch == 0 {
 			Conf.Interfaces[i].Watch = 15
 		}
-		if inf.Subnet.IP == nil {
-			Conf.Interfaces[i].Subnet = IP{
-				IP:   inf.Addr.IP,
-				Mask: net.IPv4Mask(255, 255, 255, 0),
-			}
-		}
+		// if inf.Subnet.addr == nil {
+		// 	Conf.Interfaces[i].Subnet = IP{
+		// 		IP:   inf.Addr.IP,
+		// 		Mask: net.IPv4Mask(255, 255, 255, 0),
+		// 	}
+		// }
 		if inf.Shake == 0 {
 			Conf.Interfaces[i].Shake = 150
 		}

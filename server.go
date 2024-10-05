@@ -21,11 +21,11 @@ func Listen() {
 }
 
 func check(header *fasthttp.RequestHeader) fasthttp.RequestConfig {
-	Log(LogDebug, "%+v", header.RequestURI())
-
-	if Compare(header.RequestURI(), []byte("/auth")) {
-		if len(header.Peek("X-Forwarded-For")) > 0 {
-			Log(LogDebug, "hi")
+	if CompareSlice(header.RequestURI(), []byte("/auth")) {
+		if ip := header.Peek("X-Forwarded-For"); len(ip) > 0 {
+			// FastParse(ip)
+		} else {
+			Log(LogError, "no X-Forwarded-For header found in auth request")
 		}
 
 		return fasthttp.RequestConfig{

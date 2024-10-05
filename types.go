@@ -3,14 +3,14 @@ package main
 // # db
 // ## rules
 type Rule struct {
-	Ips    []IP
-	Pubkey string
-	User   string
+	Ips     []IP
+	Pubkeys []string
+	User    string
 }
 
 // ## admins
 type Admin struct {
-	Ips []IP
+	Ip IP
 	// no clue why embedding doesn't work for yaml Unmarshal, but it's just more lines
 	Pubkey string
 	User   string

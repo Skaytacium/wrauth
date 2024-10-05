@@ -1,7 +1,6 @@
 package main
 
 import (
-	"net"
 	"path/filepath"
 
 	"github.com/alexflint/go-arg"
@@ -23,9 +22,7 @@ var Conf = Config{
 var Db DB
 var Authelia AutheliaConfiguration
 var WGs []*wgtypes.Device
-
-// list of (subnet mask, ip address)
-var Peers []net.IPNet
+var Matches []IP
 
 func main() {
 	arg.MustParse(&Args)
@@ -49,9 +46,21 @@ func main() {
 
 	wgclient, err := wgctrl.New()
 	if err != nil {
-		Log(LogFatal, "couldn't obtain WireGuard devices: %v", err)
+		Log(LogFatal, "couldn't start WireGuard client: %v", err)
+	}
+	for _, inf := range Conf.Interfaces {
+		dev, err := wgclient.Device(inf.Name)
+		if err != nil {
+			Log(LogFatal, "couldn't get device %v: %v", inf.Name, err)
+		}
+
+		WGs = append(WGs, dev)
 	}
 	defer wgclient.Close()
+
+	CachePubkeys()
+
+	Log(LogDebug, "%+v", Matches)
 
 	Log(LogInfo, "listening on: %v", Conf.Address)
 	Listen()
