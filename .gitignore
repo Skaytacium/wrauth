@@ -5,5 +5,8 @@ go.sum
 config.yaml
 db.yaml
 
+# testing
+internal/test
+
 # binary
 wrauth

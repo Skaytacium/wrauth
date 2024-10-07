@@ -11,14 +11,6 @@ func BenchmarkNetParseCIDR(b *testing.B) {
 	}
 }
 
-func BenchmarkFastCIDR(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		var ip [4]byte
-		var mask uint32
-		FastCIDR([]byte("129.168.255.235/32"), &ip, &mask)
-	}
-}
-
 func BenchmarkFastUCIDR(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		var ip, mask uint32
@@ -29,13 +21,6 @@ func BenchmarkFastUCIDR(b *testing.B) {
 func BenchmarkNetParseIP(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		net.ParseIP("129.168.255.235")
-	}
-}
-
-func BenchmarkFastIP(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		var ip [4]byte
-		FastIP([]byte("129.168.255.235"), &ip)
 	}
 }
 

@@ -7,11 +7,16 @@ import (
 )
 
 func cache(ip IP, name string) error {
-	if Find(&Matches, func(a Match) bool {
+	if Find(&Cache, func(a Match) bool {
 		return CompareUIP(&ip, &a.Ip)
 	}) == nil {
-		Matches = append(Matches, Match{
-			User: Db.Users[name],
+		user, ok := Db.Users[name]
+		if !ok {
+			return fmt.Errorf("user %v not found in Authelia database", name)
+		}
+
+		Cache = append(Cache, Match{
+			User: user,
 			Ip:   ip,
 			Name: name,
 		})
@@ -22,6 +27,7 @@ func cache(ip IP, name string) error {
 }
 
 // no clue why this is so inefficient O(n(n + n^4)), but it's only called on file update
+// and yeah it's inefficient but it's not slow, n is usually quite small
 func UpdateCache() error {
 	for _, v := range Db.Rules {
 		for _, k := range v.Pubkeys {

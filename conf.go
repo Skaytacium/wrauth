@@ -7,22 +7,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-func (ip *IP) UnmarshalYAML(data []byte) error {
-
-	// ugh
-	if data[0] == []byte("\"")[0] || data[0] == []byte("'")[0] {
-		data = data[1 : len(data)-1]
-	}
-
-	err := FastUCIDR(data, &ip.Addr, &ip.Mask)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
+// i hate this function so much
 func Store() error {
 	if err := ParseYaml(&Conf, Args.Config); err != nil {
 		return fmt.Errorf("error while parsing configuration: %w", err)
@@ -49,7 +34,7 @@ func Store() error {
 	return nil
 }
 
-func AddDefaults() {
+func SetDefaults() {
 	for i, inf := range Conf.Interfaces {
 		if inf.Conf == "" {
 			Conf.Interfaces[i].Conf = "/etc/wireguard/" + inf.Name
@@ -70,7 +55,7 @@ func AddDefaults() {
 	}
 }
 
-func WatchConfigs(w *fsnotify.Watcher) {
+func WatchFS(w *fsnotify.Watcher) {
 	// no clue why write requests happen twice, but simple fix
 	send := true
 
@@ -80,20 +65,20 @@ func WatchConfigs(w *fsnotify.Watcher) {
 			if !ok {
 				return
 			}
-			Log(LogFatal, "error watching files %v", err)
+			Log.Fatalf("error watching files %v", err)
 		case ev, ok := <-w.Events:
 			if !ok {
 				return
 			}
 			if ev.Op == fsnotify.Write && (strings.Contains(ev.Name, Args.Config) || strings.Contains(ev.Name, Args.DB)) {
 				if send {
-					Log(LogInfo, "file updated: %v", ev.Name)
+					Log.Infof("file updated: %v", ev.Name)
 					if err := Store(); err != nil {
-						Log(LogError, "error while parsing: %v", err)
+						Log.Errorln(err)
 					}
-					Matches = nil
+					Cache = nil
 					if err := UpdateCache(); err != nil {
-						Log(LogError, "error while caching: %v", err)
+						Log.Errorf("error while caching rules: %v", err)
 					}
 				}
 				send = !send

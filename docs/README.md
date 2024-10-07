@@ -16,7 +16,7 @@ currently, wrauth only supports Authelia (and only with the file backend) and I 
 due to the aforementioned reasons, only examples for nginx have been given. keep in mind, nginx requires the `ngx_http_js_module` to be installed on your system and loaded in your `nginx.conf`. [Traefik](https://traefik.io/traefik/) *should* be able to work with this with some middleware magic, but I'm not sure since I've never used it.
 
 ### future
-well, I want to add a cache on top of Authelia, but that's for someday.
+well, I want to add a cache on top of Authelia and support for multiple domains (this one's easy-ish), but that's for someday.
 
 ### contribution
 any PRs that add another auth server, modularize functionality or add more examples new are welcome, but there is no guarantee for their maintenance.

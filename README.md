@@ -11,7 +11,7 @@ wrauth is a [WireGuard](https://www.wireguard.com/) management interface and IPv
     - link: link a new connection to an existing account.
     - delete: delete a connection from an account.
 - comes with [nginx](https://nginx.org/) [auth_request](https://nginx.org/en/docs/http/ngx_http_auth_request_module.html) capabilities out of the box.
-- [is multithreaded and goes fast.](docs/bench.md)
+- [goes fast, really fast.](docs/bench.md)
 
 ### UI
 
@@ -25,7 +25,7 @@ the drive for automation is always present but this seemed to be a good project 
 
 ## How?
 
-wrauth is written in [Go](https://go.dev/) and it uses [fasthttp](https://github.com/valyala/fasthttp), [quicktemplate](https://github.com/valyala/quicktemplate), [wgctrl](https://pkg.go.dev/golang.zx2c4.com/wireguard/wgctrl), [goccy/go-yaml](https://github.com/goccy/go-yaml), [fsnotify](https://github.com/fsnotify/fsnotify) and [go-arg](https://github.com/alexflint/go-arg). basically, it acts as an extremely thin layer on top of the Authelia AuthRequest endpoint (`/api/authz/auth-request`).  
+wrauth is written in [Go](https://go.dev/) and it uses [gnet v2](https://github.com/panjf2000/gnet), [quicktemplate](https://github.com/valyala/quicktemplate), [wgctrl](https://pkg.go.dev/golang.zx2c4.com/wireguard/wgctrl), [goccy/go-yaml](https://github.com/goccy/go-yaml), [fsnotify](https://github.com/fsnotify/fsnotify) and [zap](https://github.com/uber-go/zap).
 
 ### external
 

@@ -9,14 +9,6 @@ the configuration is split into 2 parts:
 both files **must be in the same directory**. they are parsed on program start and on change and their position can be specified using command line arguments (check `wrauth --help`).  
 all IP addresses **must** be in CIDR notation (have a subnet mask at the end, use `/32` as an equivalent to no subnet).
 
-use `$<variable_name>` to add dynamic variables to some options (listed with `# DYNAMIC`)  
-currently supported variables:
-```
-user:   the user making the request.
-group:  the group that the aforementioned user is in. if multiple groups are present, they're seperated by a comma and space.
-ip:     the ip that has been requested with
-```
-
 ### wrauth db
 
 ```yaml
@@ -36,8 +28,7 @@ rules:
 # OPTIONAL: the site specific headers to add. also sequential.
 data:
     # REQUIRED: the domain to match
-    # DYNAMIC
-  - domain: '/^(db|test)\.example\.com$/'
+  - domain: '^(db|test)\.example\.com$'
     # OPTIONAL: a specific set of users/groups to match. same as Authelia subject
     # DEFAULT: match all
     subject:
@@ -46,8 +37,6 @@ data:
     headers:
       # MINIMUM: 1
         # REQUIRED: header name: header value
-        # DYNAMIC
-        - X-AuthDB-User: "$user"
         - X-AuthDB-Roles: "devdb"
 
 # REQUIRED: site admins, who can control all peers
@@ -73,7 +62,7 @@ address: '127.0.0.1:9093'
 external: 'https://wrauth.example.com'
 # OPTIONAL: the log level
 # DEFAULT: info
-log: 'debug'
+level: 'debug'
 # OPTIONAL: the theme (currently only gruvbox-dark)
 # DEFAULT: gruvbox-dark
 theme: 'gruvbox-dark'
@@ -90,9 +79,6 @@ interfaces:
   - name: 'wg0'
     # REQUIRED: listening address (subnet mask defaults to 32)
     addr: '10.0.0.1'
-    # OPTIONAL: the configuration file
-    # DEFAULT: /etc/wireguard/<name>.conf
-    conf: '/etc/wireguard/wg.conf'
     # OPTIONAL: the duration in seconds after which the peer list cache is updated (happens on a request that misses cache as well)
     # DEFAULT: 15
     watch: 5

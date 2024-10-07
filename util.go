@@ -37,35 +37,6 @@ func ParseYaml[T any](file *T, path string) error {
 
 // ~1.8x faster than net.ParseIP
 // >2x faster without safety
-func FastIP(data []byte, addr *[4]byte) error {
-	var rarr = [3]byte{1, 10, 100}
-	var tmp, rad, n, set byte = 0, 0, 3, 0
-
-	for i := len(data) - 1; i > -1; i-- {
-		// ASCII .
-		if data[i] == 0x2E {
-			addr[n] = tmp
-			tmp = 0
-			rad = 0
-			n--
-			set++
-			continue
-		}
-		// ASCII 0
-		tmp += (data[i] - 0x30) * rarr[rad]
-		rad++
-	}
-
-	addr[0] = tmp
-
-	if set != 3 {
-		return fmt.Errorf("address not in proper format")
-	} else {
-		return nil
-	}
-}
-
-// 2-4ns slower
 func FastUIP(data []byte, addr *uint32) error {
 	var rarr = [3]byte{1, 10, 100}
 	var rad, n, set byte
@@ -98,42 +69,6 @@ func FastUIP(data []byte, addr *uint32) error {
 
 // ~7x faster than net.ParseCIDR
 // ~8.5x faster without safety
-func FastCIDR(data []byte, addr *[4]byte, mask *uint32) error {
-	var rarr = [3]byte{1, 10, 100}
-	var tmp, rad, n, set byte = 0, 0, 3, 0
-
-	for i := len(data) - 1; i > -1; i-- {
-		// ASCII /
-		if data[i] == 0x2F {
-			*mask = uint32(0xffffffff << (32 - tmp))
-			tmp = 0
-			rad = 0
-			set++
-			continue
-			// ASCII .
-		} else if data[i] == 0x2E {
-			addr[n] = tmp
-			tmp = 0
-			rad = 0
-			n--
-			set++
-			continue
-		}
-		// ASCII 0
-		tmp += (data[i] - 0x30) * rarr[rad]
-		rad++
-	}
-
-	addr[0] = tmp
-
-	if set != 4 {
-		return fmt.Errorf("address not in CIDR format")
-	} else {
-		return nil
-	}
-}
-
-// 2-4ns slower
 func FastUCIDR(data []byte, addr *uint32, mask *uint32) error {
 	var rarr = [3]byte{1, 10, 100}
 	var rad, n, set byte
