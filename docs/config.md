@@ -56,11 +56,13 @@ admins:
 
 ```yaml
 # OPTIONAL: the address to listen on. use the 'unix:' prefix to specify a unix domain path
+# NOTE: wrauth doesn't support ipv6 (and doesn't plan to)
 # DEFAULT: 127.0.0.1:9092
 address: '127.0.0.1:9093'
 # REQUIRED: the full external address
 external: 'https://wrauth.example.com'
-# OPTIONAL: the log level
+# OPTIONAL: the log level 
+# NOTE: this doesn't update on reload, you must restart to program
 # DEFAULT: info
 level: 'debug'
 # OPTIONAL: the theme (currently only gruvbox-dark)
@@ -80,8 +82,9 @@ interfaces:
     # REQUIRED: listening address (subnet mask defaults to 32)
     addr: '10.0.0.1'
     # OPTIONAL: the duration in seconds after which the peer list cache is updated (happens on a request that misses cache as well)
+    # NOTE: choose a sensible value, this is not a quick operation
     # DEFAULT: 15
-    watch: 5
+    watch: 30
   - name: 'wg1'
     addr: '172.16.0.1'
     # OPTIONAL: to internally mark that only addresses from this IP range will be allowed

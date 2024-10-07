@@ -4,6 +4,8 @@
 
 since nginx and Authelia support is first-party, there is no additional configuration required except changing your `auth_request` address and adding site specific `auth_request_set` directives.
 
+keep in mind, wrauth supports **only HTTP/1.1**, any other version will **not work**. set your reverse proxy configuration accordingly.
+
 ### base
 ```nginx
 http {
@@ -26,7 +28,7 @@ http {
 		server_name wrauth.example.com;
 		listen *:443 ssl;
 
-		set $uri_authelia <wherever_wrauth_is>
+		set $uri_wrauth <wherever_wrauth_is>
 
 		location / {
 			proxy_pass $uri_wrauth;
@@ -103,8 +105,7 @@ auth_request_set $user $upstream_http_remote_user;
 auth_request_set $groups $upstream_http_remote_groups;
 auth_request_set $name $upstream_http_remote_name;
 auth_request_set $email $upstream_http_remote_email;
-# this is whatever site specific header
-auth_request_set $data $upstream_http_remote_data;
+auth_request_set $<site_specific_header> $upstream_http_remote_<site_specific_header>;
 
 auth_request_set $redirection_url $upstream_http_location;
 error_page 401 =302 $redirection_url;

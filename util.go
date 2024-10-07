@@ -21,6 +21,15 @@ func CompareSlice[T comparable](a []T, b []T) bool {
 	return ret
 }
 
+func Find[T any](a *[]T, c func(a T) bool) *T {
+	for _, x := range *a {
+		if c(x) {
+			return &x
+		}
+	}
+	return nil
+}
+
 // no clue why generics are needed here, but its a rare operation
 func ParseYaml[T any](file *T, path string) error {
 	data, err := os.ReadFile(path)
@@ -33,77 +42,6 @@ func ParseYaml[T any](file *T, path string) error {
 	}
 
 	return nil
-}
-
-// ~1.8x faster than net.ParseIP
-// >2x faster without safety
-func FastUIP(data []byte, addr *uint32) error {
-	var rarr = [3]byte{1, 10, 100}
-	var rad, n, set byte
-	var tmp uint32
-
-	*addr = 0
-	for i := len(data) - 1; i > -1; i-- {
-		// ASCII .
-		if data[i] == 0x2E {
-			*addr |= tmp << n
-			tmp = 0
-			rad = 0
-			n += 8
-			set++
-			continue
-		}
-		// ASCII 0
-		tmp += uint32((data[i] - 0x30) * rarr[rad])
-		rad++
-	}
-
-	*addr |= tmp << 24
-
-	if set != 3 {
-		return fmt.Errorf("address not in proper format")
-	} else {
-		return nil
-	}
-}
-
-// ~7x faster than net.ParseCIDR
-// ~8.5x faster without safety
-func FastUCIDR(data []byte, addr *uint32, mask *uint32) error {
-	var rarr = [3]byte{1, 10, 100}
-	var rad, n, set byte
-	var tmp uint32
-
-	*addr = 0
-	for i := len(data) - 1; i > -1; i-- {
-		// ASCII /
-		if data[i] == 0x2F {
-			*mask = 0xffffffff << (32 - tmp)
-			rad = 0
-			tmp = 0
-			set++
-			continue
-			// ASCII .
-		} else if data[i] == 0x2E {
-			*addr |= tmp << n
-			tmp = 0
-			rad = 0
-			n += 8
-			set++
-			continue
-		}
-		// ASCII 0
-		tmp += uint32((data[i] - 0x30) * rarr[rad])
-		rad++
-	}
-
-	*addr |= tmp << 24
-
-	if set != 4 {
-		return fmt.Errorf("address not in CIDR format")
-	} else {
-		return nil
-	}
 }
 
 func ToUint(data [4]byte) uint32 {
@@ -139,16 +77,11 @@ func Bits(data uint32) byte {
 	return n
 }
 
-// ~15x faster than net.IP.Equal
-func CompareUIP(a, b *IP) bool {
-	return (a.Addr^b.Addr)&b.Mask == 0
-}
-
-func Find[T any](a *[]T, c func(a T) bool) *T {
-	for _, x := range *a {
-		if c(x) {
-			return &x
+func FFind(data []byte, query byte) int {
+	for i, v := range data {
+		if query == v {
+			return i
 		}
 	}
-	return nil
+	return 0
 }

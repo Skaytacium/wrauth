@@ -53,3 +53,12 @@ func BenchmarkUCompIP(b *testing.B) {
 		}
 	}
 }
+
+func BenchmarkHTParse(b *testing.B) {
+	req := []byte("GET /auth HTTP/1.1\r\nHost: 127.0.0.1:9092\r\nUser-Agent: curl/8.10.1\r\nAccept: */*\r\nX-Forwarded-For: 10.0.0.32\r\nX-Original-Method: GET\r\nX-Original-URL: https://home.skaytacium.com\r\n\r\n")
+	parse := HTReq{}
+
+	for i := 0; i < b.N; i++ {
+		FastHTParse(req, &parse)
+	}
+}
