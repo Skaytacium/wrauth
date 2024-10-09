@@ -15,14 +15,9 @@ func Store() error {
 	if err := ParseYaml(&Db, Args.DB); err != nil {
 		return fmt.Errorf("error while parsing database: %w", err)
 	}
-	if err := ParseYaml(&Authelia, Conf.Authelia.Config); err != nil {
-		return fmt.Errorf("error while parsing Authelia configuration: %w", err)
-	}
-	if err := ParseYaml(&Db, Authelia.Authentication_backend.File.Path); err != nil {
+	if err := ParseYaml(&Db, Conf.Authelia.Db); err != nil {
 		return fmt.Errorf("error while parsing Authelia users: %w", err)
 	}
-
-	Authelia.Server.Address = strings.Replace(Authelia.Server.Address, "tcp4", "http", 1)
 
 	if len(Conf.Interfaces) == 0 {
 		return fmt.Errorf("no interfaces configured")
@@ -76,7 +71,7 @@ func WatchFS(w *fsnotify.Watcher) {
 					if err := Store(); err != nil {
 						Log.Errorln(err)
 					}
-					Cache = nil
+					Matches = nil
 					if err := UpdateCache(); err != nil {
 						Log.Errorf("error while caching rules: %v", err)
 					}

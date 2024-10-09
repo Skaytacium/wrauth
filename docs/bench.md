@@ -5,11 +5,11 @@
 notes on performance for wrauth.  
 
 - configure Authelia with `log.level` as `warn` since it outputs every failed authorization on `stdout`. this is expensive, so expensive that I got a 6x speed improvement from doing this (~5k req/s to ~30k req/s).
-- using [unix domain sockets](https://en.wikipedia.org/wiki/Unix_domain_socket) for internal communications (nginx <-> wrauth <-> Authelia) could be faster than the following benchmarks, since they have no TCP overhead.
+- using [unix domain sockets](https://en.wikipedia.org/wiki/Unix_domain_socket) for internal communications (nginx <-> wrauth <-> Authelia) is much faster than the following benchmarks, since those have no TCP overhead.
 - use the `GOMAXPROCS` environment variable to limit the no. OS threads that wrauth uses. and also check out [the fasthttp performance optimization tricks](https://pkg.go.dev/github.com/valyala/fasthttp#readme-performance-optimization-tips-for-multi-core-systems).
 
 ## Benchmarks?
-benchmarks, atleast on my machines for wrauth. made using [wrk](https://github.com/wg/wrk). there are also internal benchmarks that you can check in `_test.go` files and run to see on your machine.
+benchmarks, atleast on my machines for wrauth. made using [wrk](https://github.com/wg/wrk). there are also internal benchmarks that you can check in `_test.go` files and run to see on your machine. no benchmarks provided for unix domain sockets because [wrk doesn't support it](https://github.com/wg/wrk/issues/400).
 
 a frequency after the CPU is the frequency that it's locked to.
 

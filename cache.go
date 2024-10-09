@@ -7,7 +7,7 @@ import (
 )
 
 func cache(ip IP, name string) error {
-	if Find(&Cache, func(a Match) bool {
+	if Find(&Matches, func(a Match) bool {
 		return CompareUIP(&ip, &a.Ip)
 	}) == nil {
 		user, ok := Db.Users[name]
@@ -15,7 +15,7 @@ func cache(ip IP, name string) error {
 			return fmt.Errorf("user %v not found in Authelia database", name)
 		}
 
-		Cache = append(Cache, Match{
+		Matches = append(Matches, Match{
 			User: user,
 			Ip:   ip,
 			Name: name,

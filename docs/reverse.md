@@ -2,7 +2,10 @@
 
 ## nginx
 
-since nginx and Authelia support is first-party, there is no additional configuration required except changing your `auth_request` address and adding site specific `auth_request_set` directives.
+since nginx and Authelia support is first-party, there is not much additional configuration required.
+- **remove `X-Forwarded-URI` and `X-Forwarded-Ssl` on the auth request**. this is required due to the way wrauth's parser works. ideally, the only headers should be `X-Original-Method`, `X-Original-URL` and `X-Forwarded-For`. any headers that are as long as the aforementioned 3 could cause wrauth to bug out silently.
+- change your `auth_request` address.
+- add site specific `auth_request_set` directives.
 
 keep in mind, wrauth supports **only HTTP/1.1**, any other version will **not work**. set your reverse proxy configuration accordingly.
 
@@ -17,10 +20,8 @@ http {
 		server_name extauth.example.com;
 		listen *:443 ssl;
 
-		set $uri_authelia <wherever_authelia_is>
-
 		location / {
-			proxy_pass $uri_authelia;
+			proxy_pass <wherever Authelia is>;
 		}
 	}
 
@@ -28,10 +29,8 @@ http {
 		server_name wrauth.example.com;
 		listen *:443 ssl;
 
-		set $uri_wrauth <wherever_wrauth_is>
-
 		location / {
-			proxy_pass $uri_wrauth;
+			proxy_pass <wherever wrauth is>;
 		}
 	}
 
@@ -82,12 +81,17 @@ proxy_no_cache $cookie_session;
 ```nginx
 # auth.conf
 
-set $uri_wrauth http://127.0.0.1:9092/
+# change this to wrauth's url
+set $auth_server http://127.0.0.1:9092/
 
 location /int/auth {
 	internal;
 
-	proxy_pass $uri_wrauth/auth;
+	proxy_pass $auth_server/api/authz/auth-request;
+
+	# add these 2 or any more as mentioned in the docs
+	proxy_set_header X-Forwarded-URI "";
+	proxy_set_header X-Forwarded-Ssl "";
 
 	proxy_set_header X-Original-Method $request_method;
 	proxy_set_header X-Original-URL $scheme://$http_host$request_uri;
@@ -105,6 +109,7 @@ auth_request_set $user $upstream_http_remote_user;
 auth_request_set $groups $upstream_http_remote_groups;
 auth_request_set $name $upstream_http_remote_name;
 auth_request_set $email $upstream_http_remote_email;
+# add this accordingly
 auth_request_set $<site_specific_header> $upstream_http_remote_<site_specific_header>;
 
 auth_request_set $redirection_url $upstream_http_location;

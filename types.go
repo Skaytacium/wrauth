@@ -40,9 +40,9 @@ func sanitize(data []byte) []byte {
 type HTMethod int
 
 const (
-	HTGet  HTMethod = iota
-	HTPost HTMethod = iota
-	HTPut  HTMethod = iota
+	HTGet HTMethod = iota
+	HTPost
+	HTPut
 )
 
 func (m HTMethod) String() string {
@@ -53,6 +53,29 @@ func (m HTMethod) String() string {
 		return "POST"
 	case HTPut:
 		return "PUT"
+	}
+	return ""
+}
+
+type HTStat int
+
+const (
+	HT200 HTStat = iota
+	HT401
+	HT403
+	HT404
+)
+
+func (s HTStat) String() string {
+	switch s {
+	case HT200:
+		return "200 OK"
+	case HT401:
+		return "401 Unauthorized"
+	case HT403:
+		return "403 Forbidden"
+	case HT404:
+		return "404 Not Found"
 	}
 	return ""
 }
@@ -81,7 +104,17 @@ func (h HTReq) String() string {
 }
 
 type HTRes struct {
-	Stat    int
-	ContLen int
-	Cont    []byte
+	Stat    HTStat
+	CLength int
+	CType   []byte
+	// only headers required from Authelia response
+	Location []byte
+	SCookie  []byte
+	// Date string
+	Content []byte
+}
+
+type SubReq struct {
+	data  []byte
+	notif chan int
 }

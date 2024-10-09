@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"path/filepath"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/panjf2000/gnet/v2"
@@ -21,12 +22,18 @@ var Conf = Config{
 	Address: "127.0.0.1:9092",
 	Level:   zap.NewAtomicLevel(),
 	Theme:   "gruvbox-dark",
+	Authelia: struct {
+		Address     string
+		Db          string
+		Connections int
+	}{Connections: 64},
 }
 var Db DB
 var WGs []*wgtypes.Device
-var Cache []Match
-var Authelia AutheliaConfiguration
+var Matches []Match
 var Log *zap.SugaredLogger
+var Conns chan gnet.Conn
+var C *gnet.Client
 
 func main() {
 	Log = zap.Must(zap.Config{
@@ -48,6 +55,7 @@ func main() {
 
 	Args.Config = *flag.String("config", "./config.yaml", "location of the configuration file")
 	Args.DB = *flag.String("db", "./db.yaml", "location of the database file")
+	flag.Parse()
 
 	if err := Store(); err != nil {
 		Log.Fatalln(err)
@@ -81,13 +89,58 @@ func main() {
 	}
 	defer wgclient.Close()
 
-	if err := UpdateCache(); err != nil {
+	if err = UpdateCache(); err != nil {
 		Log.Fatalf("error while caching rules: %v", err)
 	}
 
-	Log.Infof("listening on: %v", Conf.Address)
-	gnet.Run(
-		&EvHandler{},
+	C, err = gnet.NewClient(
+		&CHandler{},
+		gnet.WithEdgeTriggeredIO(true),
+		gnet.WithMulticore(true),
+		gnet.WithTCPNoDelay(gnet.TCPNoDelay),
+		// Authelia doesn't care
+		// gnet.WithTCPKeepAlive(time.Second *15),
+		gnet.WithLogger(Log),
+		gnet.WithLogLevel(Conf.Level.Level()),
+	)
+	if err != nil {
+		Log.Fatalf("error while creating client: %v", err)
+	}
+	if err := C.Start(); err != nil {
+		Log.Fatalf("error while starting client: %w", err)
+	}
+	Conns = make(chan gnet.Conn, Conf.Authelia.Connections)
+	if err = CreateConnections(C); err != nil {
+		Log.Fatalln(err)
+	}
+
+	go func() {
+		tick := time.NewTicker(20 * time.Second)
+
+		for {
+			<-tick.C
+			Log.Debugln("pinging Authelia connections")
+
+			connections := make([]gnet.Conn, Conf.Authelia.Connections)
+			for i := 0; i < Conf.Authelia.Connections; i++ {
+				connections[i] = <-Conns
+			}
+			for _, c := range connections {
+				if c != nil {
+					if err = PingConnection(c); err != nil {
+						Log.Errorln(err)
+					}
+					<-c.Context().(SubReq).notif
+					Conns <- c
+				}
+			}
+		}
+	}()
+
+	Log.Debugln(BFind([]uint64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, 10))
+
+	if err = gnet.Run(
+		&SHandler{},
 		"tcp4://"+Conf.Address,
 		gnet.WithEdgeTriggeredIO(true),
 		gnet.WithMulticore(true),
@@ -95,5 +148,7 @@ func main() {
 		gnet.WithTCPNoDelay(gnet.TCPNoDelay),
 		gnet.WithLogger(Log),
 		gnet.WithLogLevel(Conf.Level.Level()),
-	)
+	); err != nil {
+		Log.Fatalf("error while creating server: %v", err)
+	}
 }

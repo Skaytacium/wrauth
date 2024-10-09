@@ -69,10 +69,14 @@ level: 'debug'
 # DEFAULT: gruvbox-dark
 theme: 'gruvbox-dark'
 
-# REQUIRED: Authelia related configuration
+# REQUIRED: the Authelia configuration
 authelia:
-  # REQUIRED: the Authelia configuration
-  config: '/opt/authelia/configuration.yml'
+  # REQUIRED: Authelia's listening address
+  address: '127.0.0.1:9091'
+  # REQUIRED: Authelia's user database
+  db: '/opt/authelia/users.yaml'
+  # OPTIONAL: How many connections to keep open with Authelia
+  connections: 64
 
 # REQUIRED: the wireguard interfaces to manage, and their respective addresses
 interfaces:

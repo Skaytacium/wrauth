@@ -78,16 +78,16 @@ func CompareUIP(a, b *IP) bool {
 	return (a.Addr^b.Addr)&b.Mask == 0
 }
 
-// HTTP parser, faster than O(n)
+// HTTP parsers, faster than O(n)
 // you'll need this...
 // https://www.utf8-chartable.de/unicode-utf8-table.pl?names=2
-func FastHTParse(data []byte, h *HTReq) error {
+func FastHTReqParse(data []byte, h *HTReq) {
 	// current index, previous index, headers received
 	n, p, c := 1, 1, 0
 
 	switch data[n] {
 	case 0x45:
-		// default, skip assignment
+		// default method
 		// h.Method = HTGet
 		n = 4
 	case 0x4f:
@@ -96,8 +96,6 @@ func FastHTParse(data []byte, h *HTReq) error {
 	case 0x55:
 		h.Method = HTPut
 		n = 5
-	default:
-		return fmt.Errorf("invalid HTTP method")
 	}
 	p = n
 	n += FFind(data[n:], 0x20)
@@ -158,10 +156,38 @@ func FastHTParse(data []byte, h *HTReq) error {
 			break
 		}
 	}
-
-	if c < 3 {
-		return fmt.Errorf("missing headers")
-	}
-
-	return nil
 }
+
+// somehow, this manages to be slower than HTReqParse (no clue why)
+// func FastHTResParse(data []byte, h *HTRes) {
+// 	n, p := 11, 11
+
+// 	switch data[n] {
+// 	case 0x30:
+// 		// default status
+// 		// h.Stat = HT200
+// 		n += 5
+// 	case 0x31:
+// 		h.Stat = HT401
+// 		n += 16
+// 	case 0x33:
+// 		h.Stat = HT403
+// 		n += 13
+// 	case 0x34:
+// 		h.Stat = HT404
+// 		n += 13
+// 	}
+// 	p = n
+
+// 	for data[n] != 0x0d {
+// 		switch data[n] {
+
+// 		default:
+// 			n += FFind(data[n:], 0x0d)
+// 		}
+// 		// skip \r\n
+// 		n += 2
+// 	}
+// }
+
+// // func FastHTRes

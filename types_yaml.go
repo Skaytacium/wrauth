@@ -61,32 +61,9 @@ type Config struct {
 	Level    zap.AtomicLevel
 	Theme    string
 	Authelia struct {
-		Config string
+		Address     string
+		Db          string
+		Connections int
 	}
 	Interfaces []Interface
-}
-
-// # Authelia
-// ## networks
-type Network struct {
-	Name     string
-	Networks []IP
-}
-
-// ## ugly, but "necessary" final struct
-type AutheliaConfiguration struct {
-	Server struct {
-		Address string
-	}
-	Authentication_backend struct {
-		File struct {
-			Path string
-		}
-	}
-	Session struct {
-		Cookies []struct {
-			Domain      string
-			AutheliaURL string `yaml:"authelia_url"`
-		}
-	}
 }
