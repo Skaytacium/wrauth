@@ -31,6 +31,7 @@ var Conf = Config{
 var Db DB
 var WGs []*wgtypes.Device
 var Matches []Match
+var Cache map[uint64]HTStat
 var Log *zap.SugaredLogger
 var Conns chan gnet.Conn
 var C *gnet.Client
@@ -56,6 +57,8 @@ func main() {
 	Args.Config = *flag.String("config", "./config.yaml", "location of the configuration file")
 	Args.DB = *flag.String("db", "./db.yaml", "location of the database file")
 	flag.Parse()
+
+	Cache = make(map[uint64]HTStat)
 
 	if err := Store(); err != nil {
 		Log.Fatalln(err)
@@ -89,7 +92,7 @@ func main() {
 	}
 	defer wgclient.Close()
 
-	if err = UpdateCache(); err != nil {
+	if err = AddMatches(); err != nil {
 		Log.Fatalf("error while caching rules: %v", err)
 	}
 
@@ -136,8 +139,6 @@ func main() {
 			}
 		}
 	}()
-
-	Log.Debugln(BFind([]uint64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, 10))
 
 	if err = gnet.Run(
 		&SHandler{},

@@ -157,37 +157,3 @@ func FastHTReqParse(data []byte, h *HTReq) {
 		}
 	}
 }
-
-// somehow, this manages to be slower than HTReqParse (no clue why)
-// func FastHTResParse(data []byte, h *HTRes) {
-// 	n, p := 11, 11
-
-// 	switch data[n] {
-// 	case 0x30:
-// 		// default status
-// 		// h.Stat = HT200
-// 		n += 5
-// 	case 0x31:
-// 		h.Stat = HT401
-// 		n += 16
-// 	case 0x33:
-// 		h.Stat = HT403
-// 		n += 13
-// 	case 0x34:
-// 		h.Stat = HT404
-// 		n += 13
-// 	}
-// 	p = n
-
-// 	for data[n] != 0x0d {
-// 		switch data[n] {
-
-// 		default:
-// 			n += FFind(data[n:], 0x0d)
-// 		}
-// 		// skip \r\n
-// 		n += 2
-// 	}
-// }
-
-// // func FastHTRes

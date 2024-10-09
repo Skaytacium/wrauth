@@ -161,15 +161,3 @@ func BenchmarkFFind(b *testing.B) {
 		FFind(cache, 8)
 	}
 }
-
-func BenchmarkBFind(b *testing.B) {
-	var cache = []uint64{
-		0, 1, 2, 3, 4, 5, 6, 7, 8,
-	}
-
-	for i := 0; i < b.N; i++ {
-		if BFind(cache, 5) != 5 {
-			b.Errorf("um")
-		}
-	}
-}

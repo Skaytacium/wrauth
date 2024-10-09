@@ -60,10 +60,10 @@ func (m HTMethod) String() string {
 type HTStat int
 
 const (
-	HT200 HTStat = iota
-	HT401
-	HT403
-	HT404
+	HT200 HTStat = 0
+	HT401        = 1
+	HT403        = 3
+	HT404        = 4
 )
 
 func (s HTStat) String() string {

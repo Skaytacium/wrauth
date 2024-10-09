@@ -37,6 +37,10 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 			break
 		}
 	}
+	if _, ok := Cache[Hash(req.XRemote, req.XURL, req.Cookie)]; ok {
+		n = copy(res, "HTTP/1.1 201 Created\r\n")
+		ask = false
+	}
 
 	// overall it takes ~300/330us for the entire request,
 	// minimum time it could take is 200us, if somehow
@@ -49,10 +53,10 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 	// the best way to optimize something is to not do it in
 	// the first place, so what we WILL use is a cache.
 	if ask {
-		// ~40-50 us
-		cc := <-Conns
 		// ~10-15us
 		notif := make(chan int)
+		// ~40-50 us
+		cc := <-Conns
 		// ~12.5us
 		cc.SetContext(SubReq{
 			data:  res,
@@ -69,6 +73,19 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		n = <-notif
 		// ~30-50us
 		Conns <- cc
+
+		// this does mean that a new entry will be created for each
+		// Authelia response without a cookie, and yeah that's an edge
+		// case that would take some programming to account for, but
+		// if that edge case is happening, there are bigger problems
+		// to fix in the setup.
+		//
+		// also, don't cache on 401s, these are meant to be asked to
+		// the Authelia server (so that it can actually perform authentication)
+		// ASCII 1
+		if res[11] != 0x31 {
+			Cache[Hash(req.XRemote, req.XURL, req.Cookie)] = HTStat(res[11] - 0x30)
+		}
 	} else {
 		n += copy(res[n:], "Content-Length: 0\r\n\r\n")
 	}

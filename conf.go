@@ -72,7 +72,7 @@ func WatchFS(w *fsnotify.Watcher) {
 						Log.Errorln(err)
 					}
 					Matches = nil
-					if err := UpdateCache(); err != nil {
+					if err := AddMatches(); err != nil {
 						Log.Errorf("error while caching rules: %v", err)
 					}
 				}

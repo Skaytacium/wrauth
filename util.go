@@ -85,25 +85,3 @@ func FFind(data []byte, query byte) int {
 	}
 	return 0
 }
-
-func BFind(data []uint64, query uint64) int {
-	h, l, m := len(data), 0, 0
-
-	for l != h {
-		Log.Debugf("data[m]: %v", data[m])
-		Log.Debugf("query: %v", query)
-		Log.Debugf("m: %v", m)
-		m = l + (h-l)/2
-		Log.Debugf("m2: %v", m)
-		Log.Debugf("l: %v", l)
-		Log.Debugf("h: %v", h)
-		if query > data[m] {
-			l = m + 1
-		} else if query < data[m] {
-			h = m - 1
-		} else {
-			return m
-		}
-	}
-	return 0
-}
