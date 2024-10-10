@@ -44,6 +44,13 @@ func ParseYaml[T any](file *T, path string) error {
 	return nil
 }
 
+func Sanitize(data []byte) []byte {
+	if data[0] == []byte("\"")[0] || data[0] == []byte("'")[0] {
+		return data[1 : len(data)-1]
+	}
+	return data
+}
+
 func ToUint(data [4]byte) uint32 {
 	var tmp uint32
 

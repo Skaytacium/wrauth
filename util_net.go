@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // ~1.8x faster than net.ParseIP
 // >2x faster without safety
@@ -78,10 +80,10 @@ func CompareUIP(a, b *IP) bool {
 	return (a.Addr^b.Addr)&b.Mask == 0
 }
 
-// HTTP parsers, faster than O(n)
+// HTTP parser, faster than O(n)
 // you'll need this...
 // https://www.utf8-chartable.de/unicode-utf8-table.pl?names=2
-func FastHTReqParse(data []byte, h *HTReq) {
+func FastHTAuthReqParse(data []byte, h *HTAuthReq) {
 	// current index, previous index, headers received
 	n, p, c := 1, 1, 0
 
@@ -156,4 +158,38 @@ func FastHTReqParse(data []byte, h *HTReq) {
 			break
 		}
 	}
+}
+
+func FastHTAuthResGen(res []byte, m *Match, h HTStat, url []byte) int {
+	n := copy(res, "HTTP/1.1 ")
+	n += copy(res[n:], HTStatName[h])
+	n += copy(res[n:], "\r\n")
+
+	if h == HT200 {
+		var i int
+
+		n += copy(res[n:], "Remote-User: ")
+		n += copy(res[n:], m.Id)
+		n += copy(res[n:], "\r\n")
+
+		n += copy(res[n:], "Remote-Groups: ")
+		for i = 0; i < len(m.Groups)-1; i++ {
+			n += copy(res[n:], m.Groups[i])
+			n += copy(res[n:], ",")
+		}
+		n += copy(res[n:], m.Groups[i])
+		n += copy(res[n:], "\r\n")
+
+		n += copy(res[n:], "Remote-Name: ")
+		n += copy(res[n:], m.DisplayName)
+		n += copy(res[n:], "\r\n")
+
+		n += copy(res[n:], "Remote-Email: ")
+		n += copy(res[n:], m.Email)
+		n += copy(res[n:], "\r\n")
+	}
+
+	n += copy(res[n:], "Content-Length: 0\r\n\r\n")
+
+	return n
 }

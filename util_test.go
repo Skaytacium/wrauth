@@ -57,23 +57,34 @@ func BenchmarkUCompIP(b *testing.B) {
 	}
 }
 
-func BenchmarkFastHTReqParse(b *testing.B) {
+func BenchmarkFastHTAuthReqParse(b *testing.B) {
 	req := []byte("GET /auth HTTP/1.1\r\nHost: 127.0.0.1:9092\r\nUser-Agent: curl/8.10.1\r\nAccept: */*\r\nX-Forwarded-For: 10.0.0.32\r\nX-Original-Method: GET\r\nX-Original-URL: https://home.skaytacium.com\r\n\r\n")
-	parse := HTReq{}
+	parse := HTAuthReq{}
 
 	for i := 0; i < b.N; i++ {
-		FastHTReqParse(req, &parse)
+		FastHTAuthReqParse(req, &parse)
 	}
 }
 
-// func BenchmarkFastHTAuthResParse(b *testing.B) {
-// 	req := []byte("HTTP/1.1 401 Unauthorized\r\nDate: Tue, 08 Oct 2024 23:40:48 GMT\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: 107\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: strict-origin-when-cross-origin\r\nPermissions-Policy: accelerometer=(), autoplay=(), camera=(), display-capture=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), screen-wake-lock=(), sync-xhr=(), xr-spatial-tracking=(), interest-cohort=()\r\nX-Frame-Options: DENY\r\nX-Dns-Prefetch-Control: off\r\nLocation: https://auth.skaytacium.com/?rd=https%3A%2F%2Fhome.skaytacium.com&rm=GET\r\nSet-Cookie: authelia_session=Rs^ePFhV3NpDG^KhTBMBg*HIfI-HGbTZ; expires=Wed, 09 Oct 2024 00:40:48 GMT; domain=skaytacium.com; path=/; HttpOnly; secure; SameSite=Lax\r\n\r\n<a href=\"https://auth.skaytacium.com/?rd=https%3A%2F%2Fhome.skaytacium.com&amp;rm=GET\">401 Unauthorized</a>")
-// 	parse := HTRes{}
+func BenchmarkFastHTAuthResGen(b *testing.B) {
+	req, m := make([]byte, 2048), Match{
+		Ip: IP{
+			Addr: 0xf0f0f0f0,
+			Mask: 0xffffffff,
+		},
+		Id: "test",
+		User: User{
+			Disabled:    false,
+			DisplayName: "Test",
+			Email:       "test@mail",
+			Groups:      []string{"gtest", "gtest2"},
+		},
+	}
 
-// 	for i := 0; i < b.N; i++ {
-// 		FastHTResParse(req, &parse)
-// 	}
-// }
+	for i := 0; i < b.N; i++ {
+		FastHTAuthResGen(req, &m, HT200, []byte("hello"))
+	}
+}
 
 func BenchmarkConcat(b *testing.B) {
 	var str string

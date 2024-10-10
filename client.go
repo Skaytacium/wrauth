@@ -23,7 +23,7 @@ func (ev *CHandler) OnClose(_ gnet.Conn, _ error) gnet.Action {
 func (ev *CHandler) OnTraffic(c gnet.Conn) gnet.Action {
 	data, err := c.Next(-1)
 	if err != nil {
-		Log.Errorf("error while reading response: %v", err)
+		Log.Errorf("client: reading response: %v", err)
 	}
 
 	ctx := c.Context().(SubReq)
@@ -37,7 +37,7 @@ func (ev *CHandler) OnTraffic(c gnet.Conn) gnet.Action {
 func PingConnection(c gnet.Conn) error {
 	_, err := c.Write([]byte("GET /api/authz/auth-request HTTP/1.1\r\nX-Forwarded-For: 0.0.0.0\r\nX-Original-URL: " + Conf.External + "\r\nX-Original-Method: GET\r\n\r\n"))
 	if err != nil {
-		return fmt.Errorf("error while writing to connection: %w", err)
+		return fmt.Errorf("client: writing TCP buffer: %w", err)
 	}
 
 	return nil
@@ -52,7 +52,7 @@ func CreateConnections(C *gnet.Client) error {
 			notif: notif,
 		})
 		if err != nil {
-			return fmt.Errorf("error while connecting to Authelia: %w", err)
+			return fmt.Errorf("client: dialing Authelia: %w", err)
 		}
 
 		if err = PingConnection(c); err != nil {

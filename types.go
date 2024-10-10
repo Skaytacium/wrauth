@@ -13,7 +13,7 @@ func (ip IP) String() string {
 }
 
 func (ip *IP) UnmarshalYAML(data []byte) error {
-	err := FastUCIDR(sanitize(data), &ip.Addr, &ip.Mask)
+	err := FastUCIDR(Sanitize(data), &ip.Addr, &ip.Mask)
 	if err != nil {
 		return err
 	}
@@ -22,19 +22,8 @@ func (ip *IP) UnmarshalYAML(data []byte) error {
 
 type Match struct {
 	User
-	Ip   IP
-	Name string
-}
-
-func (m Match) String() string {
-	return fmt.Sprintf("Match %v on %v", m.Name, m.Ip)
-}
-
-func sanitize(data []byte) []byte {
-	if data[0] == []byte("\"")[0] || data[0] == []byte("'")[0] {
-		return data[1 : len(data)-1]
-	}
-	return data
+	Ip IP
+	Id string
 }
 
 type HTMethod int
@@ -60,27 +49,16 @@ func (m HTMethod) String() string {
 type HTStat int
 
 const (
-	HT200 HTStat = 0
-	HT401        = 1
-	HT403        = 3
-	HT404        = 4
+	HT200 HTStat = iota
+	HT401
+	HT302
+	HT403
+	HT404
 )
 
-func (s HTStat) String() string {
-	switch s {
-	case HT200:
-		return "200 OK"
-	case HT401:
-		return "401 Unauthorized"
-	case HT403:
-		return "403 Forbidden"
-	case HT404:
-		return "404 Not Found"
-	}
-	return ""
-}
+var HTStatName = [5]string{"200 OK", "401 Unauthorized", "302 Found", "403 Forbidden", "404 Not Found"}
 
-type HTReq struct {
+type HTAuthReq struct {
 	Method HTMethod
 	Path   []byte
 	// only these 4 headers matter
@@ -91,7 +69,7 @@ type HTReq struct {
 	Cookie  []byte
 }
 
-func (h HTReq) String() string {
+func (h HTAuthReq) String() string {
 	return fmt.Sprintf(
 		"%v %v from %v with\nMethod: %v\nURL: %v\nCookie: %v",
 		h.Method,
@@ -103,16 +81,11 @@ func (h HTReq) String() string {
 	)
 }
 
-type HTRes struct {
-	Stat    HTStat
-	CLength int
-	CType   []byte
-	// only headers required from Authelia response
-	Location []byte
-	SCookie  []byte
-	// Date string
-	Content []byte
-}
+// type HTAuthRes struct {
+// 	Stat    HTStat
+// 	Id		string
+// 	User 	User
+// }
 
 type SubReq struct {
 	data  []byte

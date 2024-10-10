@@ -19,26 +19,26 @@ func (ev *SHandler) OnClose(_ gnet.Conn, _ error) gnet.Action {
 }
 
 func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
-	req, res, ask := HTReq{}, make([]byte, 2048), true
+	req, res, ask := HTAuthReq{}, make([]byte, 2048), true
 	n := copy(res, "HTTP/1.1 403 Forbidden\r\n")
 
 	// reqs will be max 1kB, TCP buffer should be able to handle that
 	data, err := c.Next(-1)
 	if err != nil {
-		Log.Errorf("error while reading request: %v", err)
+		Log.Errorf("server: reading request: %v", err)
 	}
 
-	FastHTReqParse(data, &req)
+	FastHTAuthReqParse(data, &req)
 
 	for _, m := range Matches {
 		if CompareUIP(&req.XRemote, &m.Ip) {
-			n = copy(res, "HTTP/1.1 200 OK\r\n")
+			n = FastHTAuthResGen(res, &m, HT200, req.XURL)
 			ask = false
 			break
 		}
 	}
-	if _, ok := Cache[Hash(req.XRemote, req.XURL, req.Cookie)]; ok {
-		n = copy(res, "HTTP/1.1 201 Created\r\n")
+	if _, ok := Cache[CacheHash(req.XURL, req.Cookie)]; ok {
+		n = FastHTAuthResGen(res, nil, HT403, req.XURL)
 		ask = false
 	}
 
@@ -66,10 +66,11 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		// ~15us
 		_, err = cc.Write(data)
 		if err != nil {
-			Log.Errorf("error while subrequesting Authelia: %v", err)
+			Log.Errorf("server: writing Authelia subrequest: %v", err)
 		}
 
 		// ~225us
+		// not including the TCP connection initiation time.
 		n = <-notif
 		// ~30-50us
 		Conns <- cc
@@ -83,14 +84,12 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		// the Authelia server (so that it can actually perform authentication)
 		// ASCII 1
 		if res[11] != 0x31 {
-			Cache[Hash(req.XRemote, req.XURL, req.Cookie)] = HTStat(res[11] - 0x30)
+			// Cache[CacheHash(req.XURL, req.Cookie)] = HTStat(res[11] - 0x30)
 		}
-	} else {
-		n += copy(res[n:], "Content-Length: 0\r\n\r\n")
 	}
 
 	if _, err = c.Write(res[:n]); err != nil {
-		Log.Errorf("error while writing to TCP buffer: %v", err)
+		Log.Errorf("server: writing TCP buffer: %v", err)
 	}
 	return gnet.None
 }

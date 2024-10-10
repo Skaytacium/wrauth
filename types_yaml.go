@@ -13,18 +13,15 @@ type Rule struct {
 
 // ## admins
 type Identity struct {
-	Ip IP
-	// no clue why embedding doesn't work for yaml Unmarshal, but it's just more lines
-	Pubkey string
-	User   string
-	Group  string
+	User  string
+	Group string
 }
 
 // ## custom headers
 type Header struct {
-	Urls    []string
-	Subject [][]Identity
-	Headers []map[string]string
+	Urls     []string
+	Subjects [][]Identity
+	Headers  []map[string]string
 }
 
 // ## Authelia users
@@ -37,21 +34,21 @@ type User struct {
 
 // ## final struct
 type DB struct {
-	Rules  []Rule
-	Admins [][]Identity
-	Data   []Header
-	Users  map[string]User
+	Rules   []Rule
+	Admins  [][]Identity
+	Headers []Header
+	Users   map[string]User
 }
 
 // # wrauth
 // ## WG interfaces
 type Interface struct {
-	Name   string
-	Addr   IP
-	Conf   string
-	Watch  int
-	Subnet IP
-	Shake  int
+	Name string
+	Addr IP
+	// Conf   string
+	// Watch  int
+	// Subnet IP
+	// Shake  int
 }
 
 // ## Authelia config

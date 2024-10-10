@@ -26,31 +26,29 @@ rules:
     user: 'bob'
 
 # OPTIONAL: the site specific headers to add. also sequential.
-data:
+headers:
     # REQUIRED: the X-Forwarded-URLs to match
   - urls: 
     - 'https://test.example.com'
     - 'https://devdb.example.com'
-    # OPTIONAL: a specific set of identities to match
-    # DEFAULT: match all
-    subject:
+    # REQUIRED: a specific set of identities to match
+    subjects:
+      # MINIMUM: 1
+        # EITHER: REQUIRED: the user to allow admin access to
+      - - user: 'databaseguy'
+        # OR: REQUIRED: the group to allow admin access to
       - - group: 'devs'
         - group: 'sys'
-      - - ip: '10.0.1.8/32'
     # REQUIRED: the headers to add
     headers:
       # MINIMUM: 1
         # REQUIRED: header name: header value
         - X-AuthDB-Roles: "devdb"
 
-# REQUIRED: site admins, who can control all peers, same as data.subject
+# REQUIRED: site admins, who can control all peers, same as data.subjects
 admins:
   # MINIMUM: 1
-    # EITHER: REQUIRED: the address to allow admin access to
-  - - ip: '172.16.0.10/32'
-    # OR: REQUIRED: the public key to allow admin access to
-  - - pubkey: 'MJ6JoquFLTf419V5dzkcV1z8TY8SIuPyaSH/1SBBP1o='
-    # OR: REQUIRED: the user to allow admin access to
+    # EITHER: REQUIRED: the user to allow admin access to
   - - user: 'admin'
     # OR: REQUIRED: the group to allow admin access to
     - group: 'admins'

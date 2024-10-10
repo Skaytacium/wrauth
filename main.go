@@ -24,7 +24,7 @@ var Conf = Config{
 	Theme:   "gruvbox-dark",
 	Authelia: Authelia{
 		Connections: 64,
-		Cache:       5,
+		Cache:       300,
 		Ping:        25,
 	},
 }
@@ -32,8 +32,8 @@ var Db DB
 
 var Matches []Match
 var WGs []*wgtypes.Device
-var Cache map[uint64]HTStat
-var Users map[string]User
+var Cache map[uint64]Match
+var Headers map[uint64]*map[string]string
 
 var Log *zap.SugaredLogger
 var C *gnet.Client
@@ -61,32 +61,36 @@ func main() {
 	Args.DB = *flag.String("db", "./db.yaml", "location of the database file")
 	flag.Parse()
 
-	if err := Store(); err != nil {
-		Log.Fatalln(err)
+	if err := StoreFiles(); err != nil {
+		Log.Fatalf("parsing: %v", err)
 	}
-	SetInterfaceDefaults()
+	if err := CheckConf(); err != nil {
+		Log.Fatalf("configuration: %v", err)
+	}
+	if err := CheckDB(); err != nil {
+		Log.Fatalf("database: %v", err)
+	}
 
 	fswatch, err := fsnotify.NewWatcher()
 	if err != nil {
-		Log.Fatalf("couldn't create new watcher: %v", err)
+		Log.Fatalf("filesystem watcher creation: %v", err)
 	}
 	defer fswatch.Close()
 
 	go WatchFS(fswatch)
 
-	// Authelia configs aren't monitored for a reason: Authelia itself doesn't monitor them...
 	if err = fswatch.Add(filepath.Dir(Args.Config)); err != nil {
-		Log.Fatalf("couldn't watch wrauth's directory: %v", err)
+		Log.Fatalf("filesytem watch: %v", err)
 	}
 
 	wgclient, err := wgctrl.New()
 	if err != nil {
-		Log.Fatalf("couldn't start WireGuard client: %v", err)
+		Log.Fatalf("WireGuard client creation: %v", err)
 	}
 	for _, inf := range Conf.Interfaces {
 		dev, err := wgclient.Device(inf.Name)
 		if err != nil {
-			Log.Fatalf("couldn't get device %v: %v", inf.Name, err)
+			Log.Fatalf("WireGuard device %v: %v", inf.Name, err)
 		}
 
 		WGs = append(WGs, dev)
@@ -94,7 +98,7 @@ func main() {
 	defer wgclient.Close()
 
 	if err = AddMatches(); err != nil {
-		Log.Fatalf("error while caching rules: %v", err)
+		Log.Fatalf("caching: %v", err)
 	}
 
 	C, err = gnet.NewClient(
@@ -108,10 +112,10 @@ func main() {
 		gnet.WithLogLevel(Conf.Level.Level()),
 	)
 	if err != nil {
-		Log.Fatalf("error while creating client: %v", err)
+		Log.Fatalf("TCP client creation: %v", err)
 	}
 	if err := C.Start(); err != nil {
-		Log.Fatalf("error while starting client: %w", err)
+		Log.Fatalf("TCP client starting: %w", err)
 	}
 	Conns = make(chan gnet.Conn, Conf.Authelia.Connections)
 	if err = CreateConnections(C); err != nil {
@@ -141,7 +145,7 @@ func main() {
 		}
 	}()
 
-	Cache = make(map[uint64]HTStat)
+	Cache = make(map[uint64]Match)
 
 	go func() {
 		tick := time.NewTicker(time.Duration(Conf.Authelia.Cache) * time.Second)
@@ -150,7 +154,7 @@ func main() {
 			<-tick.C
 			Log.Debugln("clearing cache")
 
-			Cache = make(map[uint64]HTStat)
+			Cache = make(map[uint64]Match)
 		}
 	}()
 
@@ -164,6 +168,6 @@ func main() {
 		gnet.WithLogger(Log),
 		gnet.WithLogLevel(Conf.Level.Level()),
 	); err != nil {
-		Log.Fatalf("error while creating server: %v", err)
+		Log.Fatalf("server creation: %v", err)
 	}
 }
