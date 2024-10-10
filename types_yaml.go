@@ -12,7 +12,7 @@ type Rule struct {
 }
 
 // ## admins
-type Admin struct {
+type Identity struct {
 	Ip IP
 	// no clue why embedding doesn't work for yaml Unmarshal, but it's just more lines
 	Pubkey string
@@ -22,8 +22,8 @@ type Admin struct {
 
 // ## custom headers
 type Header struct {
-	Domain  string
-	Subject []string
+	Urls    []string
+	Subject [][]Identity
 	Headers []map[string]string
 }
 
@@ -38,7 +38,7 @@ type User struct {
 // ## final struct
 type DB struct {
 	Rules  []Rule
-	Admins []Admin
+	Admins [][]Identity
 	Data   []Header
 	Users  map[string]User
 }
@@ -54,16 +54,21 @@ type Interface struct {
 	Shake  int
 }
 
+// ## Authelia config
+type Authelia struct {
+	Address     string
+	Db          string
+	Connections int
+	Cache       int
+	Ping        int
+}
+
 // ## final struct
 type Config struct {
-	Address  string
-	External string
-	Level    zap.AtomicLevel
-	Theme    string
-	Authelia struct {
-		Address     string
-		Db          string
-		Connections int
-	}
+	Address    string
+	External   string
+	Level      zap.AtomicLevel
+	Theme      string
+	Authelia   Authelia
 	Interfaces []Interface
 }

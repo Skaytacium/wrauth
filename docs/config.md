@@ -27,29 +27,33 @@ rules:
 
 # OPTIONAL: the site specific headers to add. also sequential.
 data:
-    # REQUIRED: the domain to match
-  - domain: '^(db|test)\.example\.com$'
-    # OPTIONAL: a specific set of users/groups to match. same as Authelia subject
+    # REQUIRED: the X-Forwarded-URLs to match
+  - urls: 
+    - 'https://test.example.com'
+    - 'https://devdb.example.com'
+    # OPTIONAL: a specific set of identities to match
     # DEFAULT: match all
     subject:
-      - 'group:devs'
+      - - group: 'devs'
+        - group: 'sys'
+      - - ip: '10.0.1.8/32'
     # REQUIRED: the headers to add
     headers:
       # MINIMUM: 1
         # REQUIRED: header name: header value
         - X-AuthDB-Roles: "devdb"
 
-# REQUIRED: site admins, who can control all peers
+# REQUIRED: site admins, who can control all peers, same as data.subject
 admins:
   # MINIMUM: 1
     # EITHER: REQUIRED: the address to allow admin access to
-  - ip: '172.16.0.10/32'
+  - - ip: '172.16.0.10/32'
     # OR: REQUIRED: the public key to allow admin access to
-  - pubkey: 'MJ6JoquFLTf419V5dzkcV1z8TY8SIuPyaSH/1SBBP1o='
+  - - pubkey: 'MJ6JoquFLTf419V5dzkcV1z8TY8SIuPyaSH/1SBBP1o='
     # OR: REQUIRED: the user to allow admin access to
-  - user: 'admin'
+  - - user: 'admin'
     # OR: REQUIRED: the group to allow admin access to
-  - group: 'admins'
+    - group: 'admins'
 ```
 
 ### wrauth configuration
@@ -58,12 +62,13 @@ admins:
 # OPTIONAL: the address to listen on. use the 'unix:' prefix to specify a unix domain path
 # NOTE: wrauth doesn't support ipv6 (and doesn't plan to)
 # DEFAULT: 127.0.0.1:9092
+# NORELOAD
 address: '127.0.0.1:9093'
 # REQUIRED: the full external address
 external: 'https://wrauth.example.com'
 # OPTIONAL: the log level 
-# NOTE: this doesn't update on reload, you must restart to program
 # DEFAULT: info
+# NORELOAD
 level: 'debug'
 # OPTIONAL: the theme (currently only gruvbox-dark)
 # DEFAULT: gruvbox-dark
@@ -75,8 +80,18 @@ authelia:
   address: '127.0.0.1:9091'
   # REQUIRED: Authelia's user database
   db: '/opt/authelia/users.yaml'
-  # OPTIONAL: How many connections to keep open with Authelia
-  connections: 64
+  # OPTIONAL: how many connections to keep open with Authelia
+  # DEFAULT: 64
+  # NORELOAD
+  connections: 32
+  # OPTIONAL: how often to clear cache in seconds
+  # DEFAULT: 300
+  # NORELOAD
+  cache: 600
+  # OPTIONAL: how often to ping Authelia in seconds (must be below 30 to keep connections alive)
+  # DEFAULT: 25
+  # NORELOAD
+  ping: 28
 
 # REQUIRED: the wireguard interfaces to manage, and their respective addresses
 interfaces:
@@ -85,16 +100,6 @@ interfaces:
   - name: 'wg0'
     # REQUIRED: listening address (subnet mask defaults to 32)
     addr: '10.0.0.1'
-    # OPTIONAL: the duration in seconds after which the peer list cache is updated (happens on a request that misses cache as well)
-    # NOTE: choose a sensible value, this is not a quick operation
-    # DEFAULT: 15
-    watch: 30
   - name: 'wg1'
     addr: '172.16.0.1'
-    # OPTIONAL: to internally mark that only addresses from this IP range will be allowed
-    # DEFAULT: <listening_address>/24
-    subnet: '172.16.0.0/16'
-    # OPTIONAL: the duration in seconds from the last handshake after which the connection is considered "closed"
-    # DEFAULT: 150
-    shake: 300
 ```

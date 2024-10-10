@@ -22,19 +22,22 @@ var Conf = Config{
 	Address: "127.0.0.1:9092",
 	Level:   zap.NewAtomicLevel(),
 	Theme:   "gruvbox-dark",
-	Authelia: struct {
-		Address     string
-		Db          string
-		Connections int
-	}{Connections: 64},
+	Authelia: Authelia{
+		Connections: 64,
+		Cache:       5,
+		Ping:        25,
+	},
 }
 var Db DB
-var WGs []*wgtypes.Device
+
 var Matches []Match
+var WGs []*wgtypes.Device
 var Cache map[uint64]HTStat
+var Users map[string]User
+
 var Log *zap.SugaredLogger
-var Conns chan gnet.Conn
 var C *gnet.Client
+var Conns chan gnet.Conn
 
 func main() {
 	Log = zap.Must(zap.Config{
@@ -58,12 +61,10 @@ func main() {
 	Args.DB = *flag.String("db", "./db.yaml", "location of the database file")
 	flag.Parse()
 
-	Cache = make(map[uint64]HTStat)
-
 	if err := Store(); err != nil {
 		Log.Fatalln(err)
 	}
-	SetDefaults()
+	SetInterfaceDefaults()
 
 	fswatch, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -118,7 +119,7 @@ func main() {
 	}
 
 	go func() {
-		tick := time.NewTicker(20 * time.Second)
+		tick := time.NewTicker(time.Duration(Conf.Authelia.Ping) * time.Second)
 
 		for {
 			<-tick.C
@@ -137,6 +138,19 @@ func main() {
 					Conns <- c
 				}
 			}
+		}
+	}()
+
+	Cache = make(map[uint64]HTStat)
+
+	go func() {
+		tick := time.NewTicker(time.Duration(Conf.Authelia.Cache) * time.Second)
+
+		for {
+			<-tick.C
+			Log.Debugln("clearing cache")
+
+			Cache = make(map[uint64]HTStat)
 		}
 	}()
 

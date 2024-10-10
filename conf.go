@@ -19,6 +19,9 @@ func Store() error {
 		return fmt.Errorf("error while parsing Authelia users: %w", err)
 	}
 
+	if Conf.Authelia.Ping >= 30 {
+		return fmt.Errorf("ping interval is too large")
+	}
 	if len(Conf.Interfaces) == 0 {
 		return fmt.Errorf("no interfaces configured")
 	}
@@ -29,7 +32,7 @@ func Store() error {
 	return nil
 }
 
-func SetDefaults() {
+func SetInterfaceDefaults() {
 	for i, inf := range Conf.Interfaces {
 		if inf.Conf == "" {
 			Conf.Interfaces[i].Conf = "/etc/wireguard/" + inf.Name

@@ -75,10 +75,9 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		Conns <- cc
 
 		// this does mean that a new entry will be created for each
-		// Authelia response without a cookie, and yeah that's an edge
-		// case that would take some programming to account for, but
-		// if that edge case is happening, there are bigger problems
-		// to fix in the setup.
+		// Authelia request, and yeah that's an edge case that would
+		// take some programming to account for, but if that edge
+		// case is happening, there are bigger problems to fix in the setup.
 		//
 		// also, don't cache on 401s, these are meant to be asked to
 		// the Authelia server (so that it can actually perform authentication)
