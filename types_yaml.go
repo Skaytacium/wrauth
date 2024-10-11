@@ -13,13 +13,13 @@ type Rule struct {
 
 // ## admins
 type Identity struct {
-	User  string
-	Group string
+	User   string
+	Groups []string
 }
 
 // ## custom headers
 type Headers struct {
-	Urls     []string
+	Domains  []string
 	Subjects []Identity
 	Headers  map[string]string
 }

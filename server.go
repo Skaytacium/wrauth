@@ -19,7 +19,7 @@ func (ev *SHandler) OnClose(_ gnet.Conn, _ error) gnet.Action {
 }
 
 func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
-	req, res, ask := HTAuthReq{}, make([]byte, 2048), true
+	req, res, id := HTAuthReq{}, make([]byte, 2048), ""
 	n := copy(res, "HTTP/1.1 403 Forbidden\r\n")
 
 	// reqs will be max 1kB, TCP buffer should be able to handle that
@@ -34,25 +34,21 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		if CompareUIP(&req.XRemote, &m.Ip) {
 			user := Db.Users[m.Id]
 			n = FastHTAuthResGen(res, m.Id, &user, HT200)
-			if h, ok := HeaderCache[UFStr(GetHost(req.XURL))]; ok {
-				if u, ok := h.User[m.Id]; ok {
-					n += copy(res[n:], u)
-				}
-			}
-			ask = false
-			break
+			id = m.Id
+			goto skipCacheCheck
 		}
 	}
 	if i, ok := AuthCache[UFStr(GetHost(req.XURL))][UFStr(req.Cookie)]; ok {
 		if i != "" {
 			user := Db.Users[i]
 			n = FastHTAuthResGen(res, i, &user, HT200)
+			id = i
 		} else {
 			n = FastHTAuthResGen(res, "", nil, HT403)
 		}
-		ask = false
 	}
 
+skipCacheCheck:
 	// overall it takes ~300/330us for the entire request,
 	// minimum time it could take is 200us, if somehow
 	// there was no overhead in proxying.
@@ -63,7 +59,7 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 	// seems to be no way to make this any faster.
 	// the best way to optimize something is to not do it in
 	// the first place, so what we WILL use is a cache.
-	if ask {
+	if id == "" {
 		// ~10-15us
 		notif := make(chan int)
 		// ~40-50 us
@@ -103,10 +99,20 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		}
 
 		if subres.Stat != HT401 {
-			umap[UFStr(req.Cookie)] = UFStr(subres.Id)
+			// convert using string here, so as to copy the byte slice
+			// instead of reusing, since it's dependent on `res`, which
+			// doesn't get released only reused
+			umap[UFStr(req.Cookie)] = string(subres.Id)
 		}
 
 		AuthCache[UFStr(GetHost(req.XURL))] = umap
+	} else {
+		if h, ok := HeaderCache[UFStr(GetHost(req.XURL))]; ok {
+			Log.Debugf("%+v", h)
+			if u, ok := h.User[id]; ok {
+				n += copy(res[n:], u)
+			}
+		}
 	}
 
 	n += copy(res[n:], "\r\n")

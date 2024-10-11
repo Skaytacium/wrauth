@@ -144,13 +144,11 @@ func main() {
 				connections[i] = <-Conns
 			}
 			for _, c := range connections {
-				if c != nil {
-					if err = PingConnection(c); err != nil {
-						Log.Errorln(err)
-					}
-					<-c.Context().(SubReq).notif
-					Conns <- c
+				if err = PingConnection(c); err != nil {
+					Log.Errorln(err)
 				}
+				<-c.Context().(SubReq).notif
+				Conns <- c
 			}
 		}
 	}()

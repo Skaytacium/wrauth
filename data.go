@@ -107,16 +107,16 @@ func AddMatches() error {
 
 func AddHeaders() error {
 	for _, d := range Db.Headers {
-		for _, u := range d.Urls {
+		for _, u := range d.Domains {
 			for _, s := range d.Subjects {
 				headerMap := HeaderCache[u]
 				if s.User != "" {
 					headerMap.User = map[string][]byte{}
 					headerMap.User[s.User] = append(headerMap.User[s.User], convHeaders(d.Headers)...)
 				}
-				if s.Group != "" {
+				if len(s.Groups) != 0 {
 					headerMap.Group = map[string][]byte{}
-					headerMap.Group[s.Group] = append(headerMap.Group[s.Group], convHeaders(d.Headers)...)
+					headerMap.Group[s.Groups] = append(headerMap.Group[s.Groups], convHeaders(d.Headers)...)
 				}
 				HeaderCache[u] = headerMap
 			}

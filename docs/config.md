@@ -40,9 +40,11 @@ headers:
       - user: 'databaseguy'
       - user: 'hello'
         # OR: REQUIRED: the groups to match
-      - group: 'maindbs'
-        # NOTE: this is how you AND it (only for groups)
-      - group: 'devs,sys'
+      - groups:
+        - 'maindbs'
+      - groups:
+        - 'devs'
+        - 'sys'
     # REQUIRED: the headers to add
     headers:
       # MINIMUM: 1
@@ -55,8 +57,11 @@ admins:
     # EITHER: REQUIRED: the user(s) to allow admin access to
   - - user: 'admin'
     # OR: REQUIRED: the groups to allow admin access to
-    - group: 'admins'
-    - group: 'sys,trusted'
+    - groups:
+      - 'admins'
+    - groups: 
+      - 'sys'
+      - 'trusted'
 ```
 
 ### wrauth configuration

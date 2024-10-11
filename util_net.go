@@ -76,6 +76,7 @@ func FastUCIDR(data []byte, addr *uint32, mask *uint32) error {
 }
 
 // ~15x faster than net.IP.Equal
+// uses the 2nd IP's mask
 func CompareUIP(a, b *IP) bool {
 	return (a.Addr^b.Addr)&b.Mask == 0
 }
@@ -201,6 +202,8 @@ func FastHTAuthResParse(data []byte, h *HTAuthRes) {
 }
 
 func FastHTAuthResGen(res []byte, id string, user *User, h HTStat) int {
+	Log.Debugf("%+v", id)
+	Log.Debugf("%+v", user)
 	n := copy(res, "HTTP/1.1 ")
 	n += copy(res[n:], HTStatName[h])
 	n += copy(res[n:], "\r\n")
@@ -212,13 +215,15 @@ func FastHTAuthResGen(res []byte, id string, user *User, h HTStat) int {
 		n += copy(res[n:], id)
 		n += copy(res[n:], "\r\n")
 
-		n += copy(res[n:], "Remote-Groups: ")
-		for i = 0; i < len(user.Groups)-1; i++ {
+		if len(user.Groups) > 0 {
+			n += copy(res[n:], "Remote-Groups: ")
+			for i = 0; i < len(user.Groups)-1; i++ {
+				n += copy(res[n:], user.Groups[i])
+				n += copy(res[n:], ",")
+			}
 			n += copy(res[n:], user.Groups[i])
-			n += copy(res[n:], ",")
+			n += copy(res[n:], "\r\n")
 		}
-		n += copy(res[n:], user.Groups[i])
-		n += copy(res[n:], "\r\n")
 
 		n += copy(res[n:], "Remote-Name: ")
 		n += copy(res[n:], user.DisplayName)

@@ -60,14 +60,14 @@ func CheckDB() error {
 		}
 	}
 	for _, d := range Db.Headers {
-		if len(d.Urls) == 0 {
-			return fmt.Errorf("URLs not configured")
+		if len(d.Domains) == 0 {
+			return fmt.Errorf("domains not configured")
 		}
 		if len(d.Subjects) == 0 {
 			return fmt.Errorf("subjects not configured")
 		}
 		for _, s := range d.Subjects {
-			if s.User == "" && s.Group == "" {
+			if s.User == "" && len(s.Groups) == 0 {
 				return fmt.Errorf("neither subject user nor group configured")
 			}
 		}
@@ -79,7 +79,7 @@ func CheckDB() error {
 		return fmt.Errorf("admins not configured")
 	}
 	for _, a := range Db.Admins {
-		if a.User == "" && a.Group == "" {
+		if a.User == "" && len(a.Groups) == 0 {
 			return fmt.Errorf("neither admin user nor group configured")
 		}
 	}
