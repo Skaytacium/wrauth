@@ -127,5 +127,8 @@ func Bits(data uint32) byte {
 }
 
 func UFStr(data []byte) string {
-	return unsafe.String(&data[0], len(data))
+	if i := len(data); i != 0 {
+		return unsafe.String(&data[0], len(data))
+	}
+	return ""
 }
