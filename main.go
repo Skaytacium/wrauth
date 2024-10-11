@@ -32,8 +32,15 @@ var Db DB
 
 var Matches []Match
 var WGs []*wgtypes.Device
-var Cache map[uint64]Match
-var Headers map[uint64]*map[string]string
+
+// on some revelations, maps are the fastest way to do
+// anything out here and theyre equally safe
+
+// host -> cookie -> id
+var AuthCache map[string]map[string]string
+
+// host -> users/groups -> headers
+var HeaderCache map[string]Header
 
 var Log *zap.SugaredLogger
 var C *gnet.Client
@@ -70,6 +77,13 @@ func main() {
 	if err := CheckDB(); err != nil {
 		Log.Fatalf("database: %v", err)
 	}
+	if err := AddMatches(); err != nil {
+		Log.Fatalf("matching: %v", err)
+	}
+	HeaderCache = make(map[string]Header)
+	if err := AddHeaders(); err != nil {
+		Log.Fatalf("headers: %v", err)
+	}
 
 	fswatch, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -87,6 +101,8 @@ func main() {
 	if err != nil {
 		Log.Fatalf("WireGuard client creation: %v", err)
 	}
+	defer wgclient.Close()
+
 	for _, inf := range Conf.Interfaces {
 		dev, err := wgclient.Device(inf.Name)
 		if err != nil {
@@ -94,11 +110,6 @@ func main() {
 		}
 
 		WGs = append(WGs, dev)
-	}
-	defer wgclient.Close()
-
-	if err = AddMatches(); err != nil {
-		Log.Fatalf("caching: %v", err)
 	}
 
 	C, err = gnet.NewClient(
@@ -124,7 +135,6 @@ func main() {
 
 	go func() {
 		tick := time.NewTicker(time.Duration(Conf.Authelia.Ping) * time.Second)
-
 		for {
 			<-tick.C
 			Log.Debugln("pinging Authelia connections")
@@ -145,18 +155,17 @@ func main() {
 		}
 	}()
 
-	Cache = make(map[uint64]Match)
-
+	AuthCache = make(map[string]map[string]string)
 	go func() {
 		tick := time.NewTicker(time.Duration(Conf.Authelia.Cache) * time.Second)
-
 		for {
 			<-tick.C
 			Log.Debugln("clearing cache")
-
-			Cache = make(map[uint64]Match)
+			AuthCache = make(map[string]map[string]string)
 		}
 	}()
+
+	Log.Debugln(Conf.External)
 
 	if err = gnet.Run(
 		&SHandler{},

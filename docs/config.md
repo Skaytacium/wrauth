@@ -9,6 +9,8 @@ the configuration is split into 2 parts:
 both files **must be in the same directory**. they are parsed on program start and on change and their position can be specified using command line arguments (check `wrauth --help`).  
 all IP addresses **must** be in CIDR notation (have a subnet mask at the end, use `/32` as an equivalent to no subnet).
 
+also note, options with `EITHER:` and `OR:` in the following examples are mutually exclusive, i.e. `rules` entries cannot have both `ips` and `pubkeys`, but must have atleast one of them (thats why the prefix). same thing applies for `headers`' `subjects`.
+
 ### wrauth db
 
 ```yaml
@@ -31,14 +33,16 @@ headers:
   - urls: 
     - 'https://test.example.com'
     - 'https://devdb.example.com'
-    # REQUIRED: a specific set of identities to match
+    # REQUIRED: a specific set of identities to match, works similarly to Authelia's subject field
     subjects:
       # MINIMUM: 1
-        # EITHER: REQUIRED: the user to allow admin access to
-      - - user: 'databaseguy'
-        # OR: REQUIRED: the group to allow admin access to
-      - - group: 'devs'
-        - group: 'sys'
+        # EITHER: REQUIRED: the user(s) to match
+      - user: 'databaseguy'
+      - user: 'hello'
+        # OR: REQUIRED: the groups to match
+      - group: 'maindbs'
+        # NOTE: this is how you AND it (only for groups)
+      - group: 'devs,sys'
     # REQUIRED: the headers to add
     headers:
       # MINIMUM: 1
@@ -48,10 +52,11 @@ headers:
 # REQUIRED: site admins, who can control all peers, same as data.subjects
 admins:
   # MINIMUM: 1
-    # EITHER: REQUIRED: the user to allow admin access to
+    # EITHER: REQUIRED: the user(s) to allow admin access to
   - - user: 'admin'
-    # OR: REQUIRED: the group to allow admin access to
+    # OR: REQUIRED: the groups to allow admin access to
     - group: 'admins'
+    - group: 'sys,trusted'
 ```
 
 ### wrauth configuration

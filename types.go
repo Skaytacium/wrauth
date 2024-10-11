@@ -21,9 +21,13 @@ func (ip *IP) UnmarshalYAML(data []byte) error {
 }
 
 type Match struct {
-	User
 	Ip IP
 	Id string
+}
+
+type Header struct {
+	User  map[string][]byte
+	Group map[string][]byte
 }
 
 type HTMethod int
@@ -81,11 +85,10 @@ func (h HTAuthReq) String() string {
 	)
 }
 
-// type HTAuthRes struct {
-// 	Stat    HTStat
-// 	Id		string
-// 	User 	User
-// }
+type HTAuthRes struct {
+	Stat HTStat
+	Id   []byte
+}
 
 type SubReq struct {
 	data  []byte

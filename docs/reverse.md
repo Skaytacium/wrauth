@@ -23,6 +23,10 @@ http {
 		location / {
 			proxy_pass <wherever Authelia is>;
 		}
+
+		location /api/authz/auth-request {
+			return 403;
+		}
 	}
 
 	server {

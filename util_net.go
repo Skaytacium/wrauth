@@ -80,7 +80,16 @@ func CompareUIP(a, b *IP) bool {
 	return (a.Addr^b.Addr)&b.Mask == 0
 }
 
-// HTTP parser, faster than O(n)
+func GetHost(url []byte) []byte {
+	// skip https:// (8)   ASCII /
+	if i := LFind(url[8:], 0x2f); i != 0xffffffff {
+		return url[8 : i+8]
+	} else {
+		return url[8:]
+	}
+}
+
+// HTTP parsers, faster than O(n)
 // you'll need this...
 // https://www.utf8-chartable.de/unicode-utf8-table.pl?names=2
 func FastHTAuthReqParse(data []byte, h *HTAuthReq) {
@@ -100,7 +109,7 @@ func FastHTAuthReqParse(data []byte, h *HTAuthReq) {
 		n = 5
 	}
 	p = n
-	n += FFind(data[n:], 0x20)
+	n += LFind(data[n:], 0x20)
 	h.Path = data[p:n]
 
 	// skip _HTTP/1.1\r\n (11)
@@ -120,7 +129,7 @@ func FastHTAuthReqParse(data []byte, h *HTAuthReq) {
 			case 0x3a:
 				n += 2
 				p = n
-				n += FFind(data[n:], 0x0d)
+				n += LFind(data[n:], 0x0d)
 				FastUIP(data[p:n], &h.XRemote.Addr)
 				// all received IPs are /32 by default
 				h.XRemote.Mask = 0xffffffff
@@ -128,28 +137,28 @@ func FastHTAuthReqParse(data []byte, h *HTAuthReq) {
 			case 0x6f:
 				n += 4
 				p = n
-				n += FFind(data[n:], 0x0d)
+				n += LFind(data[n:], 0x0d)
 				h.XMethod = data[p:n]
 				c++
 			case 0x20:
 				n++
 				p = n
-				n += FFind(data[n:], 0x0d)
+				n += LFind(data[n:], 0x0d)
 				h.XURL = data[p:n]
 				c++
 			default:
-				n += FFind(data[n:], 0x0d)
+				n += LFind(data[n:], 0x0d)
 			}
 		case 0x43:
 			// skip till starting
 			// ookie:_ (8)
 			n += 8
 			p = n
-			n += FFind(data[n:], 0x0d)
+			n += LFind(data[n:], 0x0d)
 			h.Cookie = data[p:n]
 			c++
 		default:
-			n += FFind(data[n:], 0x0d)
+			n += LFind(data[n:], 0x0d)
 		}
 		// skip \r\n
 		n += 2
@@ -160,7 +169,38 @@ func FastHTAuthReqParse(data []byte, h *HTAuthReq) {
 	}
 }
 
-func FastHTAuthResGen(res []byte, m *Match, h HTStat, url []byte) int {
+func FastHTAuthResParse(data []byte, h *HTAuthRes) {
+	h.Stat = HTStat(data[11] - 0x30)
+	if h.Stat != HT200 {
+		return
+	}
+
+	n, p := 17, 17
+
+	for data[n] != 0x0d {
+		switch data[n] {
+		case 0x52:
+			// skip Remote- (7)
+			n += 7
+			switch data[n] {
+			case 0x55:
+				// skip User:_ (6)
+				n += 6
+				p = n
+				n += LFind(data[n:], 0x0d)
+				h.Id = data[p:n]
+				break
+			default:
+				n += LFind(data[n:], 0x0d)
+			}
+		default:
+			n += LFind(data[n:], 0x0d)
+		}
+		n += 2
+	}
+}
+
+func FastHTAuthResGen(res []byte, id string, user *User, h HTStat) int {
 	n := copy(res, "HTTP/1.1 ")
 	n += copy(res[n:], HTStatName[h])
 	n += copy(res[n:], "\r\n")
@@ -169,27 +209,27 @@ func FastHTAuthResGen(res []byte, m *Match, h HTStat, url []byte) int {
 		var i int
 
 		n += copy(res[n:], "Remote-User: ")
-		n += copy(res[n:], m.Id)
+		n += copy(res[n:], id)
 		n += copy(res[n:], "\r\n")
 
 		n += copy(res[n:], "Remote-Groups: ")
-		for i = 0; i < len(m.Groups)-1; i++ {
-			n += copy(res[n:], m.Groups[i])
+		for i = 0; i < len(user.Groups)-1; i++ {
+			n += copy(res[n:], user.Groups[i])
 			n += copy(res[n:], ",")
 		}
-		n += copy(res[n:], m.Groups[i])
+		n += copy(res[n:], user.Groups[i])
 		n += copy(res[n:], "\r\n")
 
 		n += copy(res[n:], "Remote-Name: ")
-		n += copy(res[n:], m.DisplayName)
+		n += copy(res[n:], user.DisplayName)
 		n += copy(res[n:], "\r\n")
 
 		n += copy(res[n:], "Remote-Email: ")
-		n += copy(res[n:], m.Email)
+		n += copy(res[n:], user.Email)
 		n += copy(res[n:], "\r\n")
 	}
 
-	n += copy(res[n:], "Content-Length: 0\r\n\r\n")
+	n += copy(res[n:], "Content-Length: 0\r\n")
 
 	return n
 }

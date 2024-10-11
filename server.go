@@ -32,13 +32,24 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 
 	for _, m := range Matches {
 		if CompareUIP(&req.XRemote, &m.Ip) {
-			n = FastHTAuthResGen(res, &m, HT200, req.XURL)
+			user := Db.Users[m.Id]
+			n = FastHTAuthResGen(res, m.Id, &user, HT200)
+			if h, ok := HeaderCache[UFStr(GetHost(req.XURL))]; ok {
+				if u, ok := h.User[m.Id]; ok {
+					n += copy(res[n:], u)
+				}
+			}
 			ask = false
 			break
 		}
 	}
-	if _, ok := Cache[CacheHash(req.XURL, req.Cookie)]; ok {
-		n = FastHTAuthResGen(res, nil, HT403, req.XURL)
+	if i, ok := AuthCache[UFStr(GetHost(req.XURL))][UFStr(req.Cookie)]; ok {
+		if i != "" {
+			user := Db.Users[i]
+			n = FastHTAuthResGen(res, i, &user, HT200)
+		} else {
+			n = FastHTAuthResGen(res, "", nil, HT403)
+		}
 		ask = false
 	}
 
@@ -83,11 +94,22 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		// also, don't cache on 401s, these are meant to be asked to
 		// the Authelia server (so that it can actually perform authentication)
 		// ASCII 1
-		if res[11] != 0x31 {
-			// Cache[CacheHash(req.XURL, req.Cookie)] = HTStat(res[11] - 0x30)
+		subres := HTAuthRes{}
+		FastHTAuthResParse(res, &subres)
+
+		umap, ok := AuthCache[UFStr(GetHost(req.XURL))]
+		if !ok {
+			umap = make(map[string]string)
 		}
+
+		if subres.Stat != HT401 {
+			umap[UFStr(req.Cookie)] = UFStr(subres.Id)
+		}
+
+		AuthCache[UFStr(GetHost(req.XURL))] = umap
 	}
 
+	n += copy(res[n:], "\r\n")
 	if _, err = c.Write(res[:n]); err != nil {
 		Log.Errorf("server: writing TCP buffer: %v", err)
 	}

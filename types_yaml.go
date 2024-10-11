@@ -18,10 +18,10 @@ type Identity struct {
 }
 
 // ## custom headers
-type Header struct {
+type Headers struct {
 	Urls     []string
-	Subjects [][]Identity
-	Headers  []map[string]string
+	Subjects []Identity
+	Headers  map[string]string
 }
 
 // ## Authelia users
@@ -35,8 +35,8 @@ type User struct {
 // ## final struct
 type DB struct {
 	Rules   []Rule
-	Admins  [][]Identity
-	Headers []Header
+	Admins  []Identity
+	Headers []Headers
 	Users   map[string]User
 }
 

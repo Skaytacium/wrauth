@@ -22,9 +22,9 @@ func StoreFiles() error {
 }
 
 func CheckConf() error {
-	if Conf.External == "" {
-		return fmt.Errorf("external address not configured")
-	}
+	// if Conf.External == "" {
+	// 	return fmt.Errorf("external address not configured")
+	// }
 	if Conf.Authelia.Address == "" {
 		return fmt.Errorf("Authelia address not configured")
 	}
@@ -67,33 +67,20 @@ func CheckDB() error {
 			return fmt.Errorf("subjects not configured")
 		}
 		for _, s := range d.Subjects {
-			if len(s) == 0 {
-				return fmt.Errorf("subjects not configured")
-			}
-			for _, ss := range s {
-				if ss.User == "" {
-					return fmt.Errorf("subject user not configured")
-				}
-				if ss.Group == "" {
-					return fmt.Errorf("subject group not configured")
-				}
+			if s.User == "" && s.Group == "" {
+				return fmt.Errorf("neither subject user nor group configured")
 			}
 		}
 		if len(d.Headers) == 0 {
 			return fmt.Errorf("headers not configured")
 		}
 	}
+	if len(Db.Admins) == 0 {
+		return fmt.Errorf("admins not configured")
+	}
 	for _, a := range Db.Admins {
-		if len(a) == 0 {
-			return fmt.Errorf("admins not configured")
-		}
-		for _, aa := range a {
-			if aa.User == "" {
-				return fmt.Errorf("admin user not configured")
-			}
-			if aa.Group == "" {
-				return fmt.Errorf("admin group not configured")
-			}
+		if a.User == "" && a.Group == "" {
+			return fmt.Errorf("neither admin user nor group configured")
 		}
 	}
 
@@ -129,7 +116,11 @@ func WatchFS(w *fsnotify.Watcher) {
 					}
 					Matches = nil
 					if err := AddMatches(); err != nil {
-						Log.Errorf("caching: %v", err)
+						Log.Errorf("matching: %v", err)
+					}
+					HeaderCache = make(map[string]Header)
+					if err := AddHeaders(); err != nil {
+						Log.Fatalf("headers: %v", err)
 					}
 				}
 				send = !send

@@ -9,47 +9,75 @@ import (
 // only depend on url and cookie, since each user has a different cookie
 // and Authelia shouldn't care about the network if its asking for
 // further authentication.
-func CacheHash(url []byte, cookie []byte) uint64 {
-	var hash uint64
+// this is not a security risk since if somebody knows your Authlia
+// cookie, it's over anyway
+// someday these will be SIMD... (assembly i'm looking at you)
+// func AuthHash(url []byte, cookie []byte, hash *uint256.Int) {
+// 	if len(cookie) < 25 {
+// 		if !CompareSlice(cookie[0:17], []byte("authelia_session")) {
+// 			Log.Fatalf("cookie not from Authelia: %v", string(cookie))
+// 		}
+// 		Log.Fatalf("cookie not long enough: %v", string(cookie))
+// 	}
 
-	// start after https:// (8)
-	hash |= uint64(ToUint([4]byte(url[7:11]))) << 32
-	hash |= uint64(ToUint([4]byte(url[11:15])))
-	// start after authelia_session= (17)
-	hash ^= uint64(ToUint([4]byte(cookie[16:20]))) << 32
-	hash ^= uint64(ToUint([4]byte(cookie[20:24])))
+// 	// start after authelia_session= (17) (256 bit cookie)         start after https:// (8)
+// 	hash.Xor(uint256.NewInt(0).SetBytes32(cookie[17:49]), uint256.NewInt(0).SetBytes(url[8:]))
+// }
 
-	return hash
-}
+// generate one hash per url
+// 64 bits is enough for this (i don't expect
+// this to be more than 50-60 values for the
+// average homelab)
+// https://en.wikipedia.org/wiki/Birthday_problem#Probability_table
+// func IDHash(id Identity, url string) uint64 {
+// 	var hash uint64
 
-func DataHash(sub []Identity, id []byte, url []byte) uint64 {
-	var hash uint64
+// 	// XOR is commutative and associative
+// 	for i := 0; i < len(id.User) && i < 8; i++ {
+// 		hash ^= uint64(id.User[i]) << (8 * i)
+// 	}
+// 	for _, g := range id.Groups {
+// 		for i := 0; i < len(g) && i < 8; i++ {
+// 			hash ^= uint64(g[i]) << (8 * i)
+// 		}
+// 	}
+// 	for i := 0; i < len(url) && i < 8; i++ {
+// 		hash ^= uint64(url[8+i]) << (8 * i)
+// 	}
 
-	for _, s := range sub {
-		// order is important
-		
-	}
-
-}
+// 	return hash
+// }
 
 func addMatch(ip IP, name string) error {
-	if Find(&Matches, func(a Match) bool {
+	if CFind(&Matches, func(a Match) bool {
 		return CompareUIP(&ip, &a.Ip)
 	}) == nil {
-		user, ok := Db.Users[name]
+		_, ok := Db.Users[name]
 		if !ok {
 			return fmt.Errorf("user %v not in Authelia database", name)
 		}
 
 		Matches = append(Matches, Match{
-			User: user,
-			Ip:   ip,
-			Id:   name,
+			Ip: ip,
+			Id: name,
 		})
 	} else {
 		return fmt.Errorf("rule for IP %v has duplicates", ip)
 	}
 	return nil
+}
+
+func convHeaders(h map[string]string) []byte {
+	var HTTP []byte
+
+	for k, v := range h {
+		HTTP = append(HTTP, []byte(k)...)
+		HTTP = append(HTTP, []byte(": ")...)
+		HTTP = append(HTTP, []byte(v)...)
+		HTTP = append(HTTP, []byte("\r\n")...)
+	}
+
+	return HTTP
 }
 
 // no clue why these are so inefficient O(n(n + n^4)), but they're only
@@ -59,10 +87,10 @@ func AddMatches() error {
 	for _, v := range Db.Rules {
 		for _, k := range v.Pubkeys {
 			for _, wg := range WGs {
-				for _, ip := range Find(&wg.Peers, func(a wgtypes.Peer) bool {
+				for _, ip := range CFind(&wg.Peers, func(a wgtypes.Peer) bool {
 					return a.PublicKey.String() == k
 				}).AllowedIPs {
-					if err := addMatch(IP{Addr: ToUint([4]byte(ip.IP)), Mask: ToUint([4]byte(ip.Mask))}, v.User); err != nil {
+					if err := addMatch(IP{Addr: ToUint32([4]byte(ip.IP)), Mask: ToUint32([4]byte(ip.Mask))}, v.User); err != nil {
 						return err
 					}
 				}
@@ -77,13 +105,25 @@ func AddMatches() error {
 	return nil
 }
 
-func AddData() error {
+func AddHeaders() error {
 	for _, d := range Db.Headers {
 		for _, u := range d.Urls {
-			for _, ss := range d.Subjects {
-				Log.Debugln()
-				for _, 
+			for _, s := range d.Subjects {
+				headerMap := HeaderCache[u]
+				if s.User != "" {
+					headerMap.User = map[string][]byte{}
+					headerMap.User[s.User] = append(headerMap.User[s.User], convHeaders(d.Headers)...)
+				}
+				if s.Group != "" {
+					headerMap.Group = map[string][]byte{}
+					headerMap.Group[s.Group] = append(headerMap.Group[s.Group], convHeaders(d.Headers)...)
+				}
+				HeaderCache[u] = headerMap
 			}
 		}
 	}
+
+	Log.Debugf("%+v", HeaderCache)
+
+	return nil
 }

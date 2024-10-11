@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"unsafe"
 
 	"github.com/goccy/go-yaml"
 )
@@ -21,7 +22,7 @@ func CompareSlice[T comparable](a []T, b []T) bool {
 	return ret
 }
 
-func Find[T any](a *[]T, c func(a T) bool) *T {
+func CFind[T any](a *[]T, c func(a T) bool) *T {
 	for _, x := range *a {
 		if c(x) {
 			return &x
@@ -29,6 +30,47 @@ func Find[T any](a *[]T, c func(a T) bool) *T {
 	}
 	return nil
 }
+
+func LFind[T byte](data []T, query T) int {
+	for i, v := range data {
+		if query == v {
+			return i
+		}
+	}
+	return 0xffffffff
+}
+
+// func BFindU64(data []uint64, query uint64) int {
+// 	l, h, m := 0, len(data), 0
+// 	for l <= h {
+// 		m = (l + h) >> 1
+// 		if data[m] == query {
+// 			return m
+// 		}
+// 		if data[m] > query {
+// 			h = m - 1
+// 		} else {
+// 			l = m + 1
+// 		}
+// 	}
+// 	return 0xffffffff
+// }
+
+// func BFindU256(data []uint256.Int, query *uint256.Int) int {
+// 	l, h, m := 0, len(data), 0
+// 	for l <= h {
+// 		m = (l + h) >> 1
+// 		if data[m].Eq(query) {
+// 			return m
+// 		}
+// 		if data[m].Gt(query) {
+// 			h = m - 1
+// 		} else {
+// 			l = m + 1
+// 		}
+// 	}
+// 	return 0xffffffff
+// }
 
 // no clue why generics are needed here, but its a rare operation
 func ParseYaml[T any](file *T, path string) error {
@@ -38,7 +80,7 @@ func ParseYaml[T any](file *T, path string) error {
 	}
 
 	if err := yaml.Unmarshal(data, file); err != nil {
-		return fmt.Errorf("error while parsing file %v: %w", path, err)
+		return fmt.Errorf("error while parsing file %v: %v", path, yaml.FormatError(err, true, true))
 	}
 
 	return nil
@@ -51,7 +93,7 @@ func Sanitize(data []byte) []byte {
 	return data
 }
 
-func ToUint(data [4]byte) uint32 {
+func ToUint32(data [4]byte) uint32 {
 	var tmp uint32
 
 	tmp |= uint32(data[0]) << 24
@@ -84,11 +126,6 @@ func Bits(data uint32) byte {
 	return n
 }
 
-func FFind(data []byte, query byte) int {
-	for i, v := range data {
-		if query == v {
-			return i
-		}
-	}
-	return 0
+func UFStr(data []byte) string {
+	return unsafe.String(&data[0], len(data))
 }

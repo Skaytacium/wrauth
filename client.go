@@ -35,7 +35,7 @@ func (ev *CHandler) OnTraffic(c gnet.Conn) gnet.Action {
 }
 
 func PingConnection(c gnet.Conn) error {
-	_, err := c.Write([]byte("GET /api/authz/auth-request HTTP/1.1\r\nX-Forwarded-For: 0.0.0.0\r\nX-Original-URL: " + Conf.External + "\r\nX-Original-Method: GET\r\n\r\n"))
+	_, err := c.Write([]byte("GET /api/authz/auth-request HTTP/1.1\r\nX-Forwarded-For: 0.0.0.0\r\nX-Original-URL: https://" + string(Conf.External) + "\r\nX-Original-Method: GET\r\n\r\n"))
 	if err != nil {
 		return fmt.Errorf("client: writing TCP buffer: %w", err)
 	}

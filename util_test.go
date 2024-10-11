@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unsafe"
 )
 
 func BenchmarkNetParseCIDR(b *testing.B) {
@@ -34,7 +35,7 @@ func BenchmarkFastUIP(b *testing.B) {
 	}
 }
 
-func BenchmarkNetCompIP(b *testing.B) {
+func BenchmarkNetIPEqual(b *testing.B) {
 	a, B := net.IPv4(129, 168, 255, 235), net.IPv4(255, 255, 255, 255)
 	for i := 0; i < b.N; i++ {
 		if net.IP.Equal(a, B) {
@@ -43,7 +44,7 @@ func BenchmarkNetCompIP(b *testing.B) {
 	}
 }
 
-func BenchmarkUCompIP(b *testing.B) {
+func BenchmarkCompareUIP(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		if CompareUIP(&IP{
 			Addr: 0xf1f2f3f4,
@@ -66,23 +67,31 @@ func BenchmarkFastHTAuthReqParse(b *testing.B) {
 	}
 }
 
+func BenchmarkFastHTAuthResParse(b *testing.B) {
+	res := []byte("HTTP/1.1 200 OK\r\nDate: Fri, 11 Oct 2024 05:20:23 GMT\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: 6\r\nRemote-User: sid\r\nRemote-Groups: admins\r\nRemote-Name: Skaytacium\r\nRemote-Email: sidk@tuta.io\r\n\r\n200 OK")
+	parse := HTAuthRes{}
+
+	for i := 0; i < b.N; i++ {
+		FastHTAuthResParse(res, &parse)
+	}
+}
+
 func BenchmarkFastHTAuthResGen(b *testing.B) {
-	req, m := make([]byte, 2048), Match{
+	req, m, user := make([]byte, 2048), Match{
 		Ip: IP{
 			Addr: 0xf0f0f0f0,
 			Mask: 0xffffffff,
 		},
 		Id: "test",
-		User: User{
-			Disabled:    false,
-			DisplayName: "Test",
-			Email:       "test@mail",
-			Groups:      []string{"gtest", "gtest2"},
-		},
+	}, User{
+		Disabled:    false,
+		DisplayName: "test",
+		Email:       "test@test.com",
+		Groups:      []string{"test", "example"},
 	}
 
 	for i := 0; i < b.N; i++ {
-		FastHTAuthResGen(req, &m, HT200, []byte("hello"))
+		FastHTAuthResGen(req, m.Id, &user, HT200)
 	}
 }
 
@@ -147,7 +156,7 @@ func BenchmarkTimeDate(b *testing.B) {
 }
 
 func BenchmarkMap(b *testing.B) {
-	var cache = map[uint64]bool{
+	cache := map[uint64]bool{
 		1: true,
 		2: true,
 		3: true,
@@ -163,12 +172,95 @@ func BenchmarkMap(b *testing.B) {
 	}
 }
 
-func BenchmarkFFind(b *testing.B) {
-	var cache = []byte{
-		1, 2, 3, 4, 5, 6, 7, 8,
+func BenchmarkLFind(b *testing.B) {
+	var list []byte
+	var i byte
+	for i = 0; i < 255; i++ {
+		list = append(list, i)
 	}
 
 	for i := 0; i < b.N; i++ {
-		FFind(cache, 8)
+		LFind(list, 253)
+	}
+}
+
+// func BenchmarkBFindU64(b *testing.B) {
+// 	var list []uint64
+// 	var i uint64
+// 	for i = 0; i < 255; i++ {
+// 		list = append(list, i)
+// 	}
+
+// 	for i := 0; i < b.N; i++ {
+// 		BFindU64(list, 253)
+// 	}
+// }
+
+// func BenchmarkBFindU256(b *testing.B) {
+// 	var list []uint256.Int
+// 	var i uint64
+// 	for i = 0; i < 255; i++ {
+// 		list = append(list, *uint256.NewInt(i))
+// 	}
+
+// 	for i := 0; i < b.N; i++ {
+// 		BFindU256(list, uint256.NewInt(253))
+// 	}
+// }
+
+// func BenchmarkAuthHash(b *testing.B) {
+// 	k := uint256.NewInt(0)
+// 	for i := 0; i < b.N; i++ {
+// 		AuthHash([]byte("https://test.example.com"), []byte("authelia_sesson: 32bitsofdatashit32bitsofdatashit"), k)
+// 	}
+// }
+
+// func BenchmarkIDHash(b *testing.B) {
+// 	for i := 0; i < b.N; i++ {
+// 		IDHash(Identity{
+// 			User:   "test",
+// 			Groups: []string{"testgroup"},
+// 		}, "https://test.example.com")
+// 	}
+// }
+
+func BenchmarkMapHash(b *testing.B) {
+	cache := map[string]map[string]map[string]bool{
+		"https://test.example.com": {
+			"morehashing": {
+				"lasthash": true,
+			},
+		},
+	}
+
+	for i := 0; i < b.N; i++ {
+		_ = cache["https://test.example.com"]["morehashing"]["lasthash"]
+	}
+}
+
+func BenchmarkStringToByte(b *testing.B) {
+	bytearr := []byte("some medium sized byte slice containing random paraphernalia")
+	for i := 0; i < b.N; i++ {
+		_ = string(bytearr)
+	}
+}
+
+func BenchmarkByteToString(b *testing.B) {
+	bytearr := "some medium sized byte slice containing random paraphernalia"
+	for i := 0; i < b.N; i++ {
+		_ = []byte(bytearr)
+	}
+}
+
+func BenchmarkUnsafeString(b *testing.B) {
+	bytearr := []byte("some medium sized byte slice containing random paraphernalia")
+	for i := 0; i < b.N; i++ {
+		_ = unsafe.String(&bytearr[0], len(bytearr))
+	}
+}
+
+func BenchmarkGetHostString(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		UFStr(GetHost([]byte("https://some.bull.shit.a")))
 	}
 }
