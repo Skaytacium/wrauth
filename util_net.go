@@ -202,8 +202,6 @@ func FastHTAuthResParse(data []byte, h *HTAuthRes) {
 }
 
 func FastHTAuthResGen(res []byte, id string, user *User, h HTStat) int {
-	Log.Debugf("%+v", id)
-	Log.Debugf("%+v", user)
 	n := copy(res, "HTTP/1.1 ")
 	n += copy(res[n:], HTStatName[h])
 	n += copy(res[n:], "\r\n")

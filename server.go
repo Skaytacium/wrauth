@@ -108,9 +108,21 @@ skipCacheCheck:
 		AuthCache[UFStr(GetHost(req.XURL))] = umap
 	} else {
 		if h, ok := HeaderCache[UFStr(GetHost(req.XURL))]; ok {
-			Log.Debugf("%+v", h)
-			if u, ok := h.User[id]; ok {
+			if u, ok := h.Users[id]; ok {
 				n += copy(res[n:], u)
+			}
+			for _, gs := range h.Groups {
+				nog, matched := len(gs.Groups), 0
+				for _, g := range gs.Groups {
+					for _, ug := range Db.Users[id].Groups {
+						if g == ug {
+							matched++
+						}
+					}
+				}
+				if nog == matched {
+					n += copy(res[n:], gs.Header)
+				}
 			}
 		}
 	}

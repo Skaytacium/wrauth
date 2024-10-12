@@ -163,8 +163,6 @@ func main() {
 		}
 	}()
 
-	Log.Debugln(Conf.External)
-
 	if err = gnet.Run(
 		&SHandler{},
 		"tcp4://"+Conf.Address,

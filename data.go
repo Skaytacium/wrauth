@@ -109,21 +109,22 @@ func AddHeaders() error {
 	for _, d := range Db.Headers {
 		for _, u := range d.Domains {
 			for _, s := range d.Subjects {
-				headerMap := HeaderCache[u]
+				urlh := HeaderCache[u]
 				if s.User != "" {
-					headerMap.User = map[string][]byte{}
-					headerMap.User[s.User] = append(headerMap.User[s.User], convHeaders(d.Headers)...)
+					urlh.Users = make(map[string][]byte)
+					urlh.Users[s.User] = convHeaders(d.Headers)
 				}
 				if len(s.Groups) != 0 {
-					headerMap.Group = map[string][]byte{}
-					headerMap.Group[s.Groups] = append(headerMap.Group[s.Groups], convHeaders(d.Headers)...)
+					urlh.Groups = append(urlh.Groups, HeaderGroup{
+						Groups: s.Groups,
+						Header: convHeaders(d.Headers),
+					})
+
 				}
-				HeaderCache[u] = headerMap
+				HeaderCache[u] = urlh
 			}
 		}
 	}
-
-	Log.Debugf("%+v", HeaderCache)
 
 	return nil
 }

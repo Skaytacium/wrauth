@@ -25,9 +25,14 @@ type Match struct {
 	Id string
 }
 
+type HeaderGroup struct {
+	Groups []string
+	Header []byte
+}
+
 type Header struct {
-	User  map[string][]byte
-	Group map[string][]byte
+	Users  map[string][]byte
+	Groups []HeaderGroup
 }
 
 type HTMethod int
