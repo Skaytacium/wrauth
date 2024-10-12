@@ -21,6 +21,7 @@ var Args struct {
 var Conf = Config{
 	Address: "127.0.0.1:9092",
 	Level:   zap.NewAtomicLevel(),
+	Caching: true,
 	Theme:   "gruvbox-dark",
 	Authelia: Authelia{
 		Connections: 64,
@@ -83,6 +84,10 @@ func main() {
 	HeaderCache = make(map[string]Header)
 	if err := AddHeaders(); err != nil {
 		Log.Fatalf("headers: %v", err)
+	}
+
+	if !Conf.Caching {
+		Log.Warnln("caching is disabled, expect a severe performance penalty for all Authelia requests")
 	}
 
 	fswatch, err := fsnotify.NewWatcher()

@@ -38,14 +38,18 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 			goto skipCacheCheck
 		}
 	}
-	if i, ok := AuthCache[UFStr(GetHost(req.XURL))][UFStr(req.Cookie)]; ok {
-		if i != "" {
-			user := Db.Users[i]
-			n = FastHTAuthResGen(res, i, &user, HT200)
-			id = i
-		} else {
-			n = FastHTAuthResGen(res, "", nil, HT403)
+	if Conf.Caching {
+		if i, ok := AuthCache[UFStr(GetHost(req.XURL))][UFStr(req.Cookie)]; ok {
+			if i != "" {
+				user := Db.Users[i]
+				n = FastHTAuthResGen(res, i, &user, HT200)
+				id = i
+			} else {
+				n = FastHTAuthResGen(res, "", nil, HT403)
+			}
 		}
+	} else {
+		id = ""
 	}
 
 skipCacheCheck:
@@ -90,38 +94,40 @@ skipCacheCheck:
 		// also, don't cache on 401s, these are meant to be asked to
 		// the Authelia server (so that it can actually perform authentication)
 		// ASCII 1
-		subres := HTAuthRes{}
-		FastHTAuthResParse(res, &subres)
+		if Conf.Caching {
+			subres := HTAuthRes{}
+			FastHTAuthResParse(res, &subres)
 
-		umap, ok := AuthCache[UFStr(GetHost(req.XURL))]
-		if !ok {
-			umap = make(map[string]string)
+			umap, ok := AuthCache[UFStr(GetHost(req.XURL))]
+			if !ok {
+				umap = make(map[string]string)
+			}
+
+			if subres.Stat != HT401 {
+				// convert using string here, so as to copy the byte slice
+				// instead of reusing, since it's dependent on `res`, which
+				// doesn't get released only reused
+				umap[UFStr(req.Cookie)] = string(subres.Id)
+			}
+
+			AuthCache[UFStr(GetHost(req.XURL))] = umap
 		}
-
-		if subres.Stat != HT401 {
-			// convert using string here, so as to copy the byte slice
-			// instead of reusing, since it's dependent on `res`, which
-			// doesn't get released only reused
-			umap[UFStr(req.Cookie)] = string(subres.Id)
-		}
-
-		AuthCache[UFStr(GetHost(req.XURL))] = umap
 	} else {
 		if h, ok := HeaderCache[UFStr(GetHost(req.XURL))]; ok {
 			if u, ok := h.Users[id]; ok {
 				n += copy(res[n:], u)
 			}
-			for _, gs := range h.Groups {
-				nog, matched := len(gs.Groups), 0
-				for _, g := range gs.Groups {
+			for _, dg := range h.Groups {
+				ng, matched := len(dg.Groups), 0
+				for _, g := range dg.Groups {
 					for _, ug := range Db.Users[id].Groups {
 						if g == ug {
 							matched++
 						}
 					}
 				}
-				if nog == matched {
-					n += copy(res[n:], gs.Header)
+				if ng == matched {
+					n += copy(res[n:], dg.Header)
 				}
 			}
 		}

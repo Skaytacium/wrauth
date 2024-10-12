@@ -15,6 +15,10 @@ a frequency after the CPU is the frequency that it's locked to.
 
 written in the format: `Requests/sec/thread, Avg Latency/ms, Stdev Latency/ms`  
 
+### TODO
+
+**while these are being done,** you can assume wrauth to go ~5.5x faster than Authelia on 1 connection (4k->22k Req/sec), and ~2.5x faster on 64 connections (28k -> 85k Req/sec)
+
 Authelia (to establish the base speed) format: 
 ```
 network bypass
@@ -23,13 +27,15 @@ unauthorized
 
 wrauth format:
 ```
-authorized
-unauthorized
+IP authorized
+Cache authorized
+Cache unauthorized
+uncached
 ```
 
 |System|Authelia|wrauth|
 |---|---|---|
-|i7-4870HQ 1.4GHz|32306.15, 2.26, 10.15<br>5127.97, 12.29, 39.77|
-|i7-4870HQ 2GHz|45807.85, 1.25, 4.30<br>9535.91, 3.62, 3.47|
-|i7-4870HQ 2.5GHz|54432.05, 0.845, 1.22<br>10334.32, 3.40, 3.31|
+|i7-4870HQ 1.4GHz|
+|i7-4870HQ 2GHz|
+|i7-4870HQ 2.5GHz|
 |Broadcom BCM2712 (Raspberry Pi 5)|

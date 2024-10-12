@@ -56,6 +56,30 @@ details are covered in the [documentation](#documentation).
 - ingress filtering has been best practice since a while[^4], but firewalling on the server is also **seriously recommended**. some simple `nftables` [rules](docs/firewall.md) to make sure packets are being routed in and out of the same subnet and *only* on the WireGuard interface could prevent basic spoofing (but not [DoS](https://en.wikipedia.org/wiki/Denial-of-service_attack) or [MiTM](https://en.wikipedia.org/wiki/Man-in-the-middle_attack) attacks if your network is already compromised).
 - nginx needs to pass the correct IP address to the `X-Forwarded-For` header, this depends on the trustworthiness of any previous proxies[^5]. keeping this in mind while designing your overall security flow is very important since a compromised proxy on a subnet could change it's source IP address. nginx's [real_ip module](https://nginx.org/en/docs/http/ngx_http_realip_module.html) could be used for this.
 
+### v1?
+
+there's quite a bit left for the first complete release, which I'll do on a slower timeline since it isn't as urgent as what has been done.
+
+- add WireGuard peer management
+    - make HTML/CSS UI 
+    - parse and update WireGuard configurations accordingly
+    - utilize `wgctrl`'s API entirely
+    - add proper HTTP request parsing and response generation
+    - check that the user is truly over HTTPS
+- tighter security
+    - actually verify that matched IP addresses are active from WireGuard interfaces
+    - recheck entire codebase, test edge cases
+    - perhaps a better way to cache?
+- go even faster...
+    - somehow manage to benchmark HTTP over unix domain sockets
+    - actually add current benchmarks
+- modularize
+    - seperate Authelia specific code, so that adding other authentication backgrounds isn't hard
+- QoL
+    - add fast regexp for site-specific headers
+    - better panic handling
+    - safer code (in the memory sense, some of the optimized functions are quite "raw")
+
 ### Windows?
 
 what? no.

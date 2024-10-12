@@ -64,6 +64,7 @@ type Authelia struct {
 type Config struct {
 	Address    string
 	External   string
+	Caching    bool
 	Level      zap.AtomicLevel
 	Theme      string
 	Authelia   Authelia

@@ -74,6 +74,11 @@ admins:
 address: '127.0.0.1:9093'
 # REQUIRED: the full external address
 external: 'https://wrauth.example.com'
+# OPTIONAL: enable or disable caching
+# NOTE: this will reduce performance SIGNIFICANTLY, since proxying Authelia reduces performance by ~40%
+# DEFAULT: true
+# NORELOAD
+caching: true
 # OPTIONAL: the log level 
 # DEFAULT: info
 # NORELOAD
