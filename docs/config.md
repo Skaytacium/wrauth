@@ -41,9 +41,9 @@ access:
     # OR: the groups to allow
     groups:
       - - 'trusted'
-  # NOTE: only '*' subdomain globbing is allowed in 'domains' fields,
+  # NOTE: only '*' globbing is allowed in 'domains' fields, this matches all domains
   - domains:
-    - '*.example.com'
+    - '*'
     users:
       - 'superadmin'
 
