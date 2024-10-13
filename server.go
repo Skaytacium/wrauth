@@ -20,7 +20,7 @@ func (ev *SHandler) OnClose(_ gnet.Conn, _ error) gnet.Action {
 
 func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 	req, res, id := HTAuthReq{}, make([]byte, 2048), ""
-	n := copy(res, "HTTP/1.1 403 Forbidden\r\n")
+	n := HTAuthResGen(res, "", nil, HT403)
 
 	// reqs will be max 1kB, TCP buffer should be able to handle that
 	data, err := c.Next(-1)
@@ -28,32 +28,37 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		Log.Errorf("server: reading request: %v", err)
 	}
 
-	FastHTAuthReqParse(data, &req)
+	HTAuthReqParse(data, &req)
+	// used a lot
+	reqdom := UFStr(GetHost(req.XURL))
 
-	for _, m := range Matches {
-		if CompareUIP(&req.XRemote, &m.Ip) {
+	m := CFind(&Matches, func(m Match) bool {
+		return CompareUIP(&req.XRemote, &m.Ip)
+	})
+	if m != nil {
+		_, allowed := Cache[reqdom][m.Id]
+		_, globbed := Cache["*"][m.Id]
+		if allowed || globbed {
 			user := Db.Users[m.Id]
-			n = FastHTAuthResGen(res, m.Id, &user, HT200)
+			n = HTAuthResGen(res, m.Id, &user, HT200)
 			id = m.Id
-			goto skipCacheCheck
+			// skip cache check
+			goto headers
 		}
+		goto response
 	}
 	if Conf.Caching {
-		if i, ok := AuthCache[UFStr(GetHost(req.XURL))][UFStr(req.Cookie)]; ok {
-			if i != "" {
-				user := Db.Users[i]
-				n = FastHTAuthResGen(res, i, &user, HT200)
-				id = i
-			} else {
-				n = FastHTAuthResGen(res, "", nil, HT403)
+		if cid, ok := AuthCache[reqdom][UFStr(req.Cookie)]; ok {
+			if cid != "" {
+				user := Db.Users[cid]
+				n = HTAuthResGen(res, cid, &user, HT200)
+				id = cid
 			}
+			goto response
 		}
-	} else {
-		id = ""
 	}
 
-skipCacheCheck:
-	// overall it takes ~300/330us for the entire request,
+	// it takes ~300/330us for the entire request,
 	// minimum time it could take is 200us, if somehow
 	// there was no overhead in proxying.
 	// the issue is, 320us is >1.5x the actual time,
@@ -63,7 +68,9 @@ skipCacheCheck:
 	// seems to be no way to make this any faster.
 	// the best way to optimize something is to not do it in
 	// the first place, so what we WILL use is a cache.
-	if id == "" {
+	//
+	// if true is used for allowing goto statements
+	if true {
 		// ~10-15us
 		notif := make(chan int)
 		// ~40-50 us
@@ -96,9 +103,9 @@ skipCacheCheck:
 		// ASCII 1
 		if Conf.Caching {
 			subres := HTAuthRes{}
-			FastHTAuthResParse(res, &subres)
+			HTAuthResParse(res, &subres)
 
-			umap, ok := AuthCache[UFStr(GetHost(req.XURL))]
+			umap, ok := AuthCache[reqdom]
 			if !ok {
 				umap = make(map[string]string)
 			}
@@ -110,29 +117,16 @@ skipCacheCheck:
 				umap[UFStr(req.Cookie)] = string(subres.Id)
 			}
 
-			AuthCache[UFStr(GetHost(req.XURL))] = umap
+			AuthCache[reqdom] = umap
 		}
-	} else {
-		if h, ok := HeaderCache[UFStr(GetHost(req.XURL))]; ok {
-			if u, ok := h.Users[id]; ok {
-				n += copy(res[n:], u)
-			}
-			for _, dg := range h.Groups {
-				ng, matched := len(dg.Groups), 0
-				for _, g := range dg.Groups {
-					for _, ug := range Db.Users[id].Groups {
-						if g == ug {
-							matched++
-						}
-					}
-				}
-				if ng == matched {
-					n += copy(res[n:], dg.Header)
-				}
-			}
-		}
+		goto response
+	}
+headers:
+	if h := Cache[reqdom][id]; len(h) > 0 {
+		n += copy(res[n:], h)
 	}
 
+response:
 	n += copy(res[n:], "\r\n")
 	if _, err = c.Write(res[:n]); err != nil {
 		Log.Errorf("server: writing TCP buffer: %v", err)

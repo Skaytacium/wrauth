@@ -7,75 +7,90 @@ the configuration is split into 2 parts:
 - wrauth configuration, which is a `config.yaml` file.
 
 both files **must be in the same directory**. they are parsed on program start and on change and their position can be specified using command line arguments (check `wrauth --help`).  
+
 all IP addresses **must** be in CIDR notation (have a subnet mask at the end, use `/32` as an equivalent to no subnet).
 
-also note, options with `EITHER:` and `OR:` in the following examples are mutually exclusive, i.e. `rules` entries cannot have both `ips` and `pubkeys`, but must have atleast one of them (thats why the prefix). same thing applies for `headers`' `subjects`.
+options with `EITHER:` and `OR:` are not mutually exclusive, i.e. `rules` entries can have both `ips` and `pubkeys`, but must have atleast one of them (thats why the prefix).
+
+wrauth doesn't watch the Authelia user database, but it parses that on file change. to reload it, just write something (like a comment) to one of the watched `yaml` files and it will be reloaded.
 
 ### wrauth db
 
 ```yaml
-# OPTIONAL: the rules to match. only IPs that match one of these will be authorized. applied sequentially.
+# OPTIONAL: IP to user matching rules
 rules:
-    # EITHER: REQUIRED: the addresses to match
+    # EITHER: the addresses to match
   - ips:
     - '10.0.0.0/30'
     - '10.0.0.10/32'
-    # REQUIRED: the user to allot
+    # REQUIRED: the user to designate
     user: 'alice'
-    # OR: REQUIRED: the public keys (from WireGuard) to match
+    # OR: the public keys (from WireGuard) to match
   - pubkeys: 
       - 'MJ6JoquFLTf419V5dzkcV1z8TY8SIuPyaSH/1SBBP1o='
     user: 'bob'
 
-# OPTIONAL: the site specific headers to add. also sequential.
+# OPTIONAL: access control rules
+access:
+  # REQUIRED: the domains to match
+  - domains:
+    - 'private.example.com'
+    # EITHER: the users to allow
+    users: 
+      - 'admin'
+    # OR: the groups to allow
+    groups:
+      - - 'trusted'
+  # NOTE: only '*' subdomain globbing is allowed in 'domains' fields,
+  - domains:
+    - '*.example.com'
+    users:
+      - 'superadmin'
+
+# OPTIONAL: site specific headers' rules
 headers:
-    # REQUIRED: the X-Forwarded-URLs to match
-  - urls: 
-    - 'https://test.example.com'
-    - 'https://devdb.example.com'
-    # REQUIRED: a specific set of identities to match, works similarly to Authelia's subject field
-    subjects:
-      # MINIMUM: 1
-        # EITHER: REQUIRED: the user(s) to match
-      - user: 'databaseguy'
-      - user: 'hello'
-        # OR: REQUIRED: the groups to match
-      - groups:
-        - 'maindbs'
-      - groups:
-        - 'devs'
+  # REQUIRED: the domains to match
+  - domains: 
+    - 'test.example.com'
+    - 'devdb.example.com'
+    # EITHER: the user(s) to match
+    users: 
+      - 'databaseguy'
+      - 'admins'
+    # OR: the groups to match
+    groups:
+      # NOTE: matches users who are in 'maindbs' or in both 'sys' and 'devs'
+      - - 'maindbs'
+      - - 'devs' 
         - 'sys'
     # REQUIRED: the headers to add
     headers:
-      # MINIMUM: 1
-        # REQUIRED: header name: header value
-        - X-AuthDB-Roles: "devdb"
+      # REQUIRED: header name: header value
+      X-AuthDB-Roles: "devdb"
 
-# REQUIRED: site admins, who can control all peers, same as data.subjects
+# REQUIRED: site admin rules
 admins:
-  # MINIMUM: 1
-    # EITHER: REQUIRED: the user(s) to allow admin access to
-  - - user: 'admin'
-    # OR: REQUIRED: the groups to allow admin access to
-    - groups:
-      - 'admins'
-    - groups: 
-      - 'sys'
+  users: 
+    - 'admin'
+  groups:
+    - - 'admins'
+    - - 'sys'
       - 'trusted'
 ```
 
 ### wrauth configuration
 
 ```yaml
-# OPTIONAL: the address to listen on. use the 'unix:' prefix to specify a unix domain path
+# OPTIONAL: the port to listen on.
 # NOTE: wrauth doesn't support ipv6 (and doesn't plan to)
-# DEFAULT: 127.0.0.1:9092
+# NOTE: wrauth only listens on 127.0.0.1. this is by design, it is not meant to be used outside of a reverse proxy.
+# DEFAULT: 9092
 # NORELOAD
-address: '127.0.0.1:9093'
+address: '9093'
 # REQUIRED: the full external address
 external: 'https://wrauth.example.com'
 # OPTIONAL: enable or disable caching
-# NOTE: this will reduce performance SIGNIFICANTLY, since proxying Authelia reduces performance by ~40%
+# NOTE: this will reduce performance SIGNIFICANTLY if disabled, since proxying Authelia directly reduces performance by ~40%
 # DEFAULT: true
 # NORELOAD
 caching: true
@@ -87,13 +102,13 @@ level: 'debug'
 # DEFAULT: gruvbox-dark
 theme: 'gruvbox-dark'
 
-# REQUIRED: the Authelia configuration
+# REQUIRED: Authelia configuration
 authelia:
   # REQUIRED: Authelia's listening address
   address: '127.0.0.1:9091'
   # REQUIRED: Authelia's user database
   db: '/opt/authelia/users.yaml'
-  # OPTIONAL: how many connections to keep open with Authelia
+  # OPTIONAL: no. connections to keep open with Authelia
   # DEFAULT: 64
   # NORELOAD
   connections: 32
@@ -106,13 +121,21 @@ authelia:
   # NORELOAD
   ping: 28
 
-# REQUIRED: the wireguard interfaces to manage, and their respective addresses
+# REQUIRED: WireGuard interfaces
 interfaces:
-  # MINIMUM: 1
-    # REQUIRED: name of the interface
+  # REQUIRED: interface name
   - name: 'wg0'
-    # REQUIRED: listening address (subnet mask defaults to 32)
-    addr: '10.0.0.1'
+    # REQUIRED: listening address
+    addr: '10.0.0.1/32'
+    # OPTIONAL: the configuration file
+    # DEFAULT: /etc/wireguard/<name>.conf
+    conf: '/etc/wireguard/wg.conf'
+    # OPTIONAL: how often peer list cache is updated in seconds
+    # DEFAULT: 15
+    watch: 5
   - name: 'wg1'
     addr: '172.16.0.1'
+    # OPTIONAL: time from the last handshake to consider a connection closed
+    # DEFAULT: 150
+    shake: 300
 ```

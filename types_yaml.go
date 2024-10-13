@@ -11,17 +11,22 @@ type Rule struct {
 	User    string
 }
 
-// ## admins
+// ## indentification
 type Identity struct {
-	User   string
-	Groups []string
+	Users  []string
+	Groups [][]string
+}
+
+// ## access control rules
+type Access struct {
+	Identity `yaml:",inline"`
+	Domains  []string
 }
 
 // ## custom headers
 type Headers struct {
-	Domains  []string
-	Subjects []Identity
-	Headers  map[string]string
+	Access  `yaml:",inline"`
+	Headers map[string]string
 }
 
 // ## Authelia users
@@ -32,25 +37,15 @@ type User struct {
 	Groups      []string
 }
 
-// ## final struct
 type DB struct {
 	Rules   []Rule
-	Admins  []Identity
+	Admins  Identity
+	Access  []Access
 	Headers []Headers
 	Users   map[string]User
 }
 
 // # wrauth
-// ## WG interfaces
-type Interface struct {
-	Name string
-	Addr IP
-	// Conf   string
-	// Watch  int
-	// Subnet IP
-	// Shake  int
-}
-
 // ## Authelia config
 type Authelia struct {
 	Address     string
@@ -58,6 +53,15 @@ type Authelia struct {
 	Connections int
 	Cache       int
 	Ping        int
+}
+
+// ## WG interfaces
+type Interface struct {
+	Name  string
+	Addr  IP
+	Conf  string
+	Watch int
+	Shake int
 }
 
 // ## final struct

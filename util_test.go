@@ -18,7 +18,7 @@ func BenchmarkNetParseCIDR(b *testing.B) {
 func BenchmarkFastUCIDR(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		var ip, mask uint32
-		FastUCIDR([]byte("129.168.255.235/32"), &ip, &mask)
+		ParseUCIDR([]byte("129.168.255.235/32"), &ip, &mask)
 	}
 }
 
@@ -31,7 +31,7 @@ func BenchmarkNetParseIP(b *testing.B) {
 func BenchmarkFastUIP(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		var ip uint32
-		FastUIP([]byte("129.168.255.235"), &ip)
+		ParseUIP([]byte("129.168.255.235"), &ip)
 	}
 }
 
@@ -63,7 +63,7 @@ func BenchmarkFastHTAuthReqParse(b *testing.B) {
 	parse := HTAuthReq{}
 
 	for i := 0; i < b.N; i++ {
-		FastHTAuthReqParse(req, &parse)
+		HTAuthReqParse(req, &parse)
 	}
 }
 
@@ -72,7 +72,7 @@ func BenchmarkFastHTAuthResParse(b *testing.B) {
 	parse := HTAuthRes{}
 
 	for i := 0; i < b.N; i++ {
-		FastHTAuthResParse(res, &parse)
+		HTAuthResParse(res, &parse)
 	}
 }
 
@@ -91,7 +91,7 @@ func BenchmarkFastHTAuthResGen(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		FastHTAuthResGen(req, m.Id, &user, HT200)
+		HTAuthResGen(req, m.Id, &user, HT200)
 	}
 }
 
@@ -262,5 +262,15 @@ func BenchmarkUnsafeString(b *testing.B) {
 func BenchmarkGetHostString(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		UFStr(GetHost([]byte("https://some.bull.shit.a")))
+	}
+}
+
+func BenchmarkUserIn(b *testing.B) {
+	uid, id := "test", Identity{
+		Users:  []string{},
+		Groups: [][]string{{"1"}, {"2", "3"}},
+	}
+	for i := 0; i < b.N; i++ {
+		UserIn(uid, id)
 	}
 }

@@ -4,9 +4,12 @@ import (
 	"fmt"
 )
 
+// most of these are highly optimized prematurely, not for
+// actual speed gains, but because i was having fun
+
 // ~1.8x faster than net.ParseIP
 // >2x faster without safety
-func FastUIP(data []byte, addr *uint32) error {
+func ParseUIP(data []byte, addr *uint32) error {
 	var rarr = [3]byte{1, 10, 100}
 	var rad, n, set byte
 	var tmp uint32
@@ -38,7 +41,7 @@ func FastUIP(data []byte, addr *uint32) error {
 
 // ~7x faster than net.ParseCIDR
 // ~8.5x faster without safety
-func FastUCIDR(data []byte, addr *uint32, mask *uint32) error {
+func ParseUCIDR(data []byte, addr *uint32, mask *uint32) error {
 	var rarr = [3]byte{1, 10, 100}
 	var rad, n, set byte
 	var tmp uint32
@@ -90,10 +93,22 @@ func GetHost(url []byte) []byte {
 	}
 }
 
+func MatchGlobURL(glob, url string) bool {
+	// ASCII *
+	if glob[0] == 0x2A {
+		if glob[2:] == url[LFind([]byte(url), 0x2E)+1:] {
+			return true
+		}
+	} else if glob == url {
+		return true
+	}
+	return false
+}
+
 // HTTP parsers, faster than O(n)
 // you'll need this...
 // https://www.utf8-chartable.de/unicode-utf8-table.pl?names=2
-func FastHTAuthReqParse(data []byte, h *HTAuthReq) {
+func HTAuthReqParse(data []byte, h *HTAuthReq) {
 	// current index, previous index, headers received
 	n, p, c := 1, 1, 0
 
@@ -131,7 +146,7 @@ func FastHTAuthReqParse(data []byte, h *HTAuthReq) {
 				n += 2
 				p = n
 				n += LFind(data[n:], 0x0d)
-				FastUIP(data[p:n], &h.XRemote.Addr)
+				ParseUIP(data[p:n], &h.XRemote.Addr)
 				// all received IPs are /32 by default
 				h.XRemote.Mask = 0xffffffff
 				c++
@@ -170,7 +185,7 @@ func FastHTAuthReqParse(data []byte, h *HTAuthReq) {
 	}
 }
 
-func FastHTAuthResParse(data []byte, h *HTAuthRes) {
+func HTAuthResParse(data []byte, h *HTAuthRes) {
 	h.Stat = HTStat(data[11] - 0x30)
 	if h.Stat != HT200 {
 		return
@@ -201,7 +216,7 @@ func FastHTAuthResParse(data []byte, h *HTAuthRes) {
 	}
 }
 
-func FastHTAuthResGen(res []byte, id string, user *User, h HTStat) int {
+func HTAuthResGen(res []byte, id string, user *User, h HTStat) int {
 	n := copy(res, "HTTP/1.1 ")
 	n += copy(res[n:], HTStatName[h])
 	n += copy(res[n:], "\r\n")
@@ -235,4 +250,15 @@ func FastHTAuthResGen(res []byte, id string, user *User, h HTStat) int {
 	n += copy(res[n:], "Content-Length: 0\r\n")
 
 	return n
+}
+
+func AddHeaders(h map[string]string) []byte {
+	t, n := make([]byte, 2048), 0
+	for k, v := range h {
+		n += copy(t[n:], k)
+		n += copy(t[n:], []byte(": "))
+		n += copy(t[n:], v)
+		n += copy(t[n:], []byte("\r\n"))
+	}
+	return t[:n]
 }

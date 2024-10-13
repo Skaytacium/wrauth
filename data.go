@@ -67,19 +67,6 @@ func addMatch(ip IP, name string) error {
 	return nil
 }
 
-func convHeaders(h map[string]string) []byte {
-	var HTTP []byte
-
-	for k, v := range h {
-		HTTP = append(HTTP, []byte(k)...)
-		HTTP = append(HTTP, []byte(": ")...)
-		HTTP = append(HTTP, []byte(v)...)
-		HTTP = append(HTTP, []byte("\r\n")...)
-	}
-
-	return HTTP
-}
-
 // no clue why these are so inefficient O(n(n + n^4)), but they're only
 // called on file update. and yeah it's inefficient but it's not too slow,
 // since n is usually quite small
@@ -105,26 +92,54 @@ func AddMatches() error {
 	return nil
 }
 
-func AddHeaders() error {
-	for _, d := range Db.Headers {
-		for _, u := range d.Domains {
-			for _, s := range d.Subjects {
-				urlh := HeaderCache[u]
-				if s.User != "" {
-					urlh.Users = make(map[string][]byte)
-					urlh.Users[s.User] = convHeaders(d.Headers)
+func AddCache() error {
+	for _, a := range Db.Access {
+		for _, d := range a.Domains {
+			if d[0] == 0x2A {
+				d = "*"
+			}
+			if _, ok := Cache[d]; !ok {
+				Cache[d] = make(map[string][]byte)
+			}
+			// slow caching but read up
+			for u := range Db.Users {
+				if UserIn(u, a.Identity) {
+					Cache[d][u] = []byte{}
 				}
-				if len(s.Groups) != 0 {
-					urlh.Groups = append(urlh.Groups, HeaderGroup{
-						Groups: s.Groups,
-						Header: convHeaders(d.Headers),
-					})
-
-				}
-				HeaderCache[u] = urlh
 			}
 		}
 	}
-
+	for _, h := range Db.Headers {
+		for _, d := range h.Domains {
+			if d[0] == 0x2A {
+				d = "*"
+			}
+			if _, ok := Cache[d]; !ok {
+				Cache[d] = make(map[string][]byte)
+			}
+			for u := range Db.Users {
+				if UserIn(u, h.Identity) {
+					th := Cache[d][u]
+					if cap(th) == 0 {
+						th = make([]byte, 2048)
+					}
+					Cache[d][u] = append(Cache[d][u], AddHeaders(h.Headers)...)
+				}
+			}
+		}
+	}
 	return nil
+}
+
+func AddPeers(wg *wgtypes.Device) {
+	for _, p := range wg.Peers {
+		for _, ip := range p.AllowedIPs {
+			pip := IP{Addr: ToUint32([4]byte(ip.IP)), Mask: ToUint32([4]byte(ip.Mask))}
+			if CFind(&WGPeers, func(wip IP) bool {
+				return CompareUIP(&pip, &wip)
+			}) == nil {
+				WGPeers = append(WGPeers, pip)
+			}
+		}
+	}
 }

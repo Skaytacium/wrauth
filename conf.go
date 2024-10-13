@@ -7,7 +7,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-func StoreFiles() error {
+func ParseFiles() error {
 	if err := ParseYaml(&Conf, Args.Config); err != nil {
 		return fmt.Errorf("configuration: %w", err)
 	}
@@ -22,9 +22,9 @@ func StoreFiles() error {
 }
 
 func CheckConf() error {
-	// if Conf.External == "" {
-	// 	return fmt.Errorf("external address not configured")
-	// }
+	if Conf.External == "" {
+		return fmt.Errorf("external address not configured")
+	}
 	if Conf.Authelia.Address == "" {
 		return fmt.Errorf("Authelia address not configured")
 	}
@@ -38,12 +38,21 @@ func CheckConf() error {
 		return fmt.Errorf("interfaces not configured")
 	}
 
-	for _, inf := range Conf.Interfaces {
+	for i, inf := range Conf.Interfaces {
 		if inf.Name == "" {
 			return fmt.Errorf("interface name not configured")
 		}
 		if inf.Addr.Mask == 0 {
 			return fmt.Errorf("address not configured for interface %v", inf.Name)
+		}
+		if inf.Conf == "" {
+			Conf.Interfaces[i].Conf = "/etc/wireguard/" + inf.Name + ".conf"
+		}
+		if inf.Shake == 0 {
+			Conf.Interfaces[i].Shake = 300
+		}
+		if inf.Watch == 0 {
+			Conf.Interfaces[i].Watch = 15
 		}
 	}
 
@@ -53,35 +62,33 @@ func CheckConf() error {
 func CheckDB() error {
 	for _, r := range Db.Rules {
 		if r.User == "" {
-			return fmt.Errorf("user not configured")
+			return fmt.Errorf("rules: user not configured")
 		}
 		if len(r.Ips) == 0 && len(r.Pubkeys) == 0 {
-			return fmt.Errorf("IPs or public keys not configured for %v", r.User)
+			return fmt.Errorf("rules: IPs or public keys not configured for %v", r.User)
+		}
+	}
+	for _, a := range Db.Access {
+		if len(a.Domains) == 0 {
+			return fmt.Errorf("access: domains not configured")
+		}
+		if len(a.Users) == 0 && len(a.Groups) == 0 {
+			return fmt.Errorf("access: neither users nor groups configured")
 		}
 	}
 	for _, d := range Db.Headers {
 		if len(d.Domains) == 0 {
-			return fmt.Errorf("domains not configured")
+			return fmt.Errorf("headers: domains not configured")
 		}
-		if len(d.Subjects) == 0 {
-			return fmt.Errorf("subjects not configured")
-		}
-		for _, s := range d.Subjects {
-			if s.User == "" && len(s.Groups) == 0 {
-				return fmt.Errorf("neither subject user nor group configured")
-			}
+		if len(d.Users) == 0 && len(d.Groups) == 0 {
+			return fmt.Errorf("access: neither users nor groups configured")
 		}
 		if len(d.Headers) == 0 {
-			return fmt.Errorf("headers not configured")
+			return fmt.Errorf("headers: headers not configured")
 		}
 	}
-	if len(Db.Admins) == 0 {
+	if len(Db.Admins.Users) == 0 && len(Db.Admins.Groups) == 0 {
 		return fmt.Errorf("admins not configured")
-	}
-	for _, a := range Db.Admins {
-		if a.User == "" && len(a.Groups) == 0 {
-			return fmt.Errorf("neither admin user nor group configured")
-		}
 	}
 
 	return nil
@@ -105,7 +112,7 @@ func WatchFS(w *fsnotify.Watcher) {
 			if ev.Op == fsnotify.Write && (strings.Contains(ev.Name, Args.Config) || strings.Contains(ev.Name, Args.DB)) {
 				if send {
 					Log.Infof("file updated: %v", ev.Name)
-					if err := StoreFiles(); err != nil {
+					if err := ParseFiles(); err != nil {
 						Log.Errorf("parsing: %v", err)
 					}
 					if err := CheckConf(); err != nil {
@@ -117,10 +124,6 @@ func WatchFS(w *fsnotify.Watcher) {
 					Matches = nil
 					if err := AddMatches(); err != nil {
 						Log.Errorf("matching: %v", err)
-					}
-					HeaderCache = make(map[string]Header)
-					if err := AddHeaders(); err != nil {
-						Log.Fatalf("headers: %v", err)
 					}
 				}
 				send = !send

@@ -33,6 +33,7 @@ var Db DB
 
 var Matches []Match
 var WGs []*wgtypes.Device
+var WGPeers []IP
 
 // on some revelations, maps are the fastest way to do
 // anything out here and theyre equally safe
@@ -40,8 +41,8 @@ var WGs []*wgtypes.Device
 // host -> cookie -> id
 var AuthCache map[string]map[string]string
 
-// host -> users/groups -> headers
-var HeaderCache map[string]Header
+// host -> user -> headers
+var Cache map[string]map[string][]byte
 
 var Log *zap.SugaredLogger
 var C *gnet.Client
@@ -69,21 +70,22 @@ func main() {
 	Args.DB = *flag.String("db", "./db.yaml", "location of the database file")
 	flag.Parse()
 
-	if err := StoreFiles(); err != nil {
+	Log.Infoln("parsing files")
+	if err := ParseFiles(); err != nil {
 		Log.Fatalf("parsing: %v", err)
 	}
+	Log.Infoln("checking configuration")
 	if err := CheckConf(); err != nil {
 		Log.Fatalf("configuration: %v", err)
 	}
+	Log.Infoln("checking database")
 	if err := CheckDB(); err != nil {
 		Log.Fatalf("database: %v", err)
 	}
-	if err := AddMatches(); err != nil {
-		Log.Fatalf("matching: %v", err)
-	}
-	HeaderCache = make(map[string]Header)
-	if err := AddHeaders(); err != nil {
-		Log.Fatalf("headers: %v", err)
+	Log.Infoln("caching access control and headers")
+	Cache = make(map[string]map[string][]byte)
+	if err := AddCache(); err != nil {
+		Log.Fatalf("caching: %v", err)
 	}
 
 	if !Conf.Caching {
@@ -98,6 +100,7 @@ func main() {
 
 	go WatchFS(fswatch)
 
+	Log.Infoln("watching configuration directory")
 	if err = fswatch.Add(filepath.Dir(Args.Config)); err != nil {
 		Log.Fatalf("filesytem watch: %v", err)
 	}
@@ -108,6 +111,7 @@ func main() {
 	}
 	defer wgclient.Close()
 
+	Log.Infoln("adding WireGuard interfaces & peers")
 	for _, inf := range Conf.Interfaces {
 		dev, err := wgclient.Device(inf.Name)
 		if err != nil {
@@ -115,6 +119,23 @@ func main() {
 		}
 
 		WGs = append(WGs, dev)
+
+		Log.Debugf("%+v", inf)
+
+		go func() {
+			time := time.NewTicker(time.Duration(inf.Watch) * time.Second)
+			for {
+				<-time.C
+				Log.Debugf("refreshing peers for %v", inf.Name)
+				AddPeers(dev)
+			}
+		}()
+	}
+
+	Log.Infoln("matching IPs to users")
+	// needs WireGuard setup
+	if err := AddMatches(); err != nil {
+		Log.Fatalf("matching: %v", err)
 	}
 
 	C, err = gnet.NewClient(
@@ -134,6 +155,7 @@ func main() {
 		Log.Fatalf("TCP client starting: %w", err)
 	}
 	Conns = make(chan gnet.Conn, Conf.Authelia.Connections)
+	Log.Infoln("creating Authelia connections")
 	if err = CreateConnections(C); err != nil {
 		Log.Fatalln(err)
 	}
@@ -163,11 +185,12 @@ func main() {
 		tick := time.NewTicker(time.Duration(Conf.Authelia.Cache) * time.Second)
 		for {
 			<-tick.C
-			Log.Debugln("clearing cache")
+			Log.Debugln("clearing Authelia cache")
 			AuthCache = make(map[string]map[string]string)
 		}
 	}()
 
+	Log.Infoln("running server")
 	if err = gnet.Run(
 		&SHandler{},
 		"tcp4://"+Conf.Address,

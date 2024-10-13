@@ -13,7 +13,7 @@ func (ip IP) String() string {
 }
 
 func (ip *IP) UnmarshalYAML(data []byte) error {
-	err := FastUCIDR(Sanitize(data), &ip.Addr, &ip.Mask)
+	err := ParseUCIDR(Sanitize(data), &ip.Addr, &ip.Mask)
 	if err != nil {
 		return err
 	}

@@ -64,20 +64,21 @@ there's quite a bit left for the first complete release, which I'll do on a slow
     - make HTML/CSS UI 
     - parse and update WireGuard configurations accordingly
     - utilize `wgctrl`'s API entirely
-    - add proper HTTP request parsing and response generation
+    - use [fasthttp](https://github.com/valyala/fasthttp) for a proper server
     - check that the user is truly over HTTPS
 - tighter security
     - actually verify that matched IP addresses are active from WireGuard interfaces
     - recheck entire codebase, test edge cases
-    - perhaps a better way to cache?
+    - ~~perhaps a better way to cache?~~
 - go even faster...
     - somehow manage to benchmark HTTP over unix domain sockets
     - actually add current benchmarks
+    - ~~cache access control rules and site-specific headers~~
 - modularize
     - seperate Authelia specific code, so that adding other authentication backgrounds isn't hard
 - QoL
     - add fast regexp for site-specific headers
-    - better panic handling
+    - ~~better panic handling~~
     - safer code (in the memory sense, some of the optimized functions are quite "raw")
 
 ### Windows?

@@ -22,6 +22,9 @@ func CompareSlice[T comparable](a []T, b []T) bool {
 	return ret
 }
 
+// for each element in `a`, run function `c` which returns
+// true if the element is found, and return a pointer to
+// the found element in the array, otherwise return nil
 func CFind[T any](a *[]T, c func(a T) bool) *T {
 	for _, x := range *a {
 		if c(x) {
@@ -38,6 +41,42 @@ func LFind[T byte](data []T, query T) int {
 		}
 	}
 	return 0xffffffff
+}
+
+func UserIn(uid string, id Identity) bool {
+	for _, u := range id.Users {
+		if u == uid {
+			return true
+		}
+	}
+	for _, bg := range id.Groups {
+		m := 0
+		for _, ig := range bg {
+			for _, kg := range Db.Users[uid].Groups {
+				if ig == kg {
+					m++
+				}
+			}
+		}
+		if m == len(bg) {
+			return true
+		}
+	}
+	return false
+}
+
+func UsersOf(gid string) []string {
+	var users []string
+	for u, U := range Db.Users {
+		for _, g := range U.Groups {
+			if g == gid && CFind(&users, func(uu string) bool {
+				return u == gid
+			}) == nil {
+				users = append(users, u)
+			}
+		}
+	}
+	return users
 }
 
 // func BFindU64(data []uint64, query uint64) int {
