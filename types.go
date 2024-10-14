@@ -67,6 +67,10 @@ const (
 
 var HTStatName = [5]string{"200 OK", "401 Unauthorized", "302 Found", "403 Forbidden", "404 Not Found"}
 
+func (s HTStat) String() string {
+	return HTStatName[s]
+}
+
 type HTAuthReq struct {
 	Method HTMethod
 	Path   []byte
@@ -76,18 +80,6 @@ type HTAuthReq struct {
 	XMethod []byte
 	XURL    []byte
 	Cookie  []byte
-}
-
-func (h HTAuthReq) String() string {
-	return fmt.Sprintf(
-		"%v %v from %v with\nMethod: %v\nURL: %v\nCookie: %v",
-		h.Method,
-		string(h.Path),
-		h.XRemote,
-		string(h.XMethod),
-		string(h.XURL),
-		string(h.Cookie),
-	)
 }
 
 type HTAuthRes struct {

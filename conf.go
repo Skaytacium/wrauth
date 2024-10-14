@@ -73,17 +73,6 @@ func CheckDB() error {
 			return fmt.Errorf("access: neither users nor groups configured")
 		}
 	}
-	for _, d := range Db.Headers {
-		if len(d.Domains) == 0 {
-			return fmt.Errorf("headers: domains not configured")
-		}
-		if len(d.Users) == 0 && len(d.Groups) == 0 {
-			return fmt.Errorf("access: neither users nor groups configured")
-		}
-		if len(d.Headers) == 0 {
-			return fmt.Errorf("headers: headers not configured")
-		}
-	}
 	if len(Db.Admins.Users) == 0 && len(Db.Admins.Groups) == 0 {
 		return fmt.Errorf("admins not configured")
 	}

@@ -21,12 +21,7 @@ type Identity struct {
 type Access struct {
 	Identity `yaml:",inline"`
 	Domains  []string
-}
-
-// ## custom headers
-type Headers struct {
-	Access  `yaml:",inline"`
-	Headers map[string]string
+	Headers  map[string]string
 }
 
 // ## Authelia users
@@ -38,11 +33,10 @@ type User struct {
 }
 
 type DB struct {
-	Rules   []Rule
-	Admins  Identity
-	Access  []Access
-	Headers []Headers
-	Users   map[string]User
+	Rules  []Rule
+	Admins Identity
+	Access []Access
+	Users  map[string]User
 }
 
 // # wrauth

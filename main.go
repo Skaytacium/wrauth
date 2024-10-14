@@ -76,19 +76,19 @@ func main() {
 	Args.DB = *flag.String("db", "./db.yaml", "location of the database file")
 	flag.Parse()
 
-	Log.Infoln("parsing files")
+	Log.Debugln("parsing files")
 	if err := ParseFiles(); err != nil {
 		Log.Fatalf("parsing: %v", err)
 	}
-	Log.Infoln("checking configuration")
+	Log.Debugln("checking configuration")
 	if err := CheckConf(); err != nil {
 		Log.Fatalf("configuration: %v", err)
 	}
-	Log.Infoln("checking database")
+	Log.Debugln("checking database")
 	if err := CheckDB(); err != nil {
 		Log.Fatalf("database: %v", err)
 	}
-	Log.Infoln("caching access control and headers")
+	Log.Debugln("caching access control and headers")
 	Cache = make(map[string]map[string][]byte)
 	if err := AddCache(); err != nil {
 		Log.Fatalf("caching: %v", err)
@@ -106,7 +106,7 @@ func main() {
 
 	go WatchFS(fswatch)
 
-	Log.Infoln("watching configuration directory")
+	Log.Debugln("watching configuration directory")
 	if err = fswatch.Add(filepath.Dir(Args.Config)); err != nil {
 		Log.Fatalf("filesytem watch: %v", err)
 	}
@@ -117,7 +117,7 @@ func main() {
 	}
 	defer wgclient.Close()
 
-	Log.Infoln("adding WireGuard interfaces")
+	Log.Debugln("adding WireGuard interfaces")
 	for _, inf := range Conf.Interfaces {
 		dev, err := wgclient.Device(inf.Name)
 		if err != nil {
@@ -133,7 +133,7 @@ func main() {
 		}{dev, inf})
 	}
 
-	Log.Infoln("matching IPs to users")
+	Log.Debugln("matching IPs to users")
 	// needs WireGuard setup
 	if err := AddMatches(); err != nil {
 		Log.Fatalf("matching: %v", err)
@@ -156,7 +156,7 @@ func main() {
 		Log.Fatalf("TCP client starting: %w", err)
 	}
 	Conns = make(chan gnet.Conn, Conf.Authelia.Connections)
-	Log.Infoln("creating Authelia connections")
+	Log.Debugln("creating Authelia connections")
 	if err = CreateConnections(C); err != nil {
 		Log.Fatalln(err)
 	}
@@ -193,7 +193,7 @@ func main() {
 		}
 	}()
 
-	Log.Infoln("running server")
+	Log.Debugln("running server")
 	if err = gnet.Run(
 		&SHandler{},
 		"tcp4://"+Conf.Address,

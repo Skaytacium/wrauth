@@ -77,10 +77,11 @@ there's quite a bit left for the first complete release, which I'll do on a slow
 - modularize
     - seperate Authelia specific code, so that adding other authentication backgrounds isn't hard
 - QoL
-    - add proper support for multiple domains
+    - ~~add proper support for multiple domains~~
     - add fast regexp for site-specific headers
     - ~~better panic handling~~
-    - safer code (in the memory sense, some of the optimized functions are quite "raw")
+    - ~~increase verbosity on debug mode~~
+    - ~~safer code (in the memory sense, some of the optimized functions are quite "raw")~~
     - ~~safer code (in the concurrency sense, some of these could be fatal)~~
 
 ### Windows?

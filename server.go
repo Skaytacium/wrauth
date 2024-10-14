@@ -1,6 +1,7 @@
 package main
 
 import (
+	"path/filepath"
 	"time"
 
 	"github.com/panjf2000/gnet/v2"
@@ -34,15 +35,22 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 	// used a lot
 	reqdom := UFStr(GetHost(req.XURL))
 
+	Log.Debugf("IP: %v", req.XRemote)
+	Log.Debugf("domain: %v", reqdom)
+	Log.Debugf("cookie: %v", UFStr(req.Cookie))
+
 	m := CFind(&Matches, func(m Match) bool {
 		return CompareUIP(&req.XRemote, &m.Ip)
 	})
 	if m != nil {
+		Log.Debugln("IP matched in rules")
 		w := false
+		// i hate this
 		for _, d := range WGs {
 			for _, p := range d.Peers {
 				for _, a := range p.AllowedIPs {
 					ip := ConvIP(a)
+					// i hate this as well
 					if CompareUIP(&req.XRemote, &ip) && p.LastHandshakeTime.Add(time.Duration(d.data.Shake)*time.Second).After(time.Now()) {
 						w = true
 					}
@@ -50,8 +58,17 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 			}
 		}
 		_, allowed := Cache[reqdom][m.Id]
-		_, globbed := Cache["*"][m.Id]
-		if w && (allowed || globbed) {
+		if !allowed {
+			Log.Debugln("direct match doesn't exist, checking globs")
+			for u := range Cache {
+				if g, err := filepath.Match(u, reqdom); g && err == nil {
+					allowed = true
+				}
+			}
+		}
+		Log.Debugf("active over WireGuard: %v", w)
+		Log.Debugf("allowed in domains: %v", allowed)
+		if w && allowed {
 			user := Db.Users[m.Id]
 			n = HTAuthResGen(res, m.Id, &user, HT200)
 			id = m.Id
@@ -60,9 +77,11 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		}
 		goto response
 	}
+	Log.Debugln("IP not in rules, checking cache")
 	if Conf.Caching {
 		AuthCache.RLock()
 		if cid, ok := AuthCache.cache[reqdom][UFStr(req.Cookie[17:17+32])]; ok {
+			Log.Debugf("cookie: %v cached as user: %v", req.Cookie, cid)
 			if cid != "" {
 				user := Db.Users[cid]
 				n = HTAuthResGen(res, cid, &user, HT200)
@@ -71,6 +90,7 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 			AuthCache.RUnlock()
 			goto response
 		}
+		// i hate writing this again
 		AuthCache.RUnlock()
 	}
 
@@ -87,6 +107,7 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 	//
 	// if true is used for allowing goto statements
 	if true {
+		Log.Debugln("subrequesting Authelia")
 		// ~10-15us
 		notif := make(chan int)
 		// ~40-50 us
@@ -121,11 +142,13 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 			subres := HTAuthRes{}
 			HTAuthResParse(res, &subres)
 
+			Log.Debugf("subrequest status: %v", subres.Stat)
 			if subres.Stat != HT401 {
 				AuthCache.RLock()
 				umap, ok := AuthCache.cache[reqdom]
 				AuthCache.RUnlock()
 				if !ok {
+					Log.Debugln("caching subrequest response")
 					AuthCache.Lock()
 					umap = make(map[string]string)
 					// convert using string here, so as to copy the byte slice

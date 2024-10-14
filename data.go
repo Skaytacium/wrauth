@@ -95,35 +95,12 @@ func AddMatches() error {
 func AddCache() error {
 	for _, a := range Db.Access {
 		for _, d := range a.Domains {
-			if d[0] == 0x2A {
-				d = "*"
-			}
 			if _, ok := Cache[d]; !ok {
 				Cache[d] = make(map[string][]byte)
 			}
-			// slow caching but read up
 			for u := range Db.Users {
 				if UserIn(u, a.Identity) {
-					Cache[d][u] = []byte{}
-				}
-			}
-		}
-	}
-	for _, h := range Db.Headers {
-		for _, d := range h.Domains {
-			if d[0] == 0x2A {
-				d = "*"
-			}
-			if _, ok := Cache[d]; !ok {
-				Cache[d] = make(map[string][]byte)
-			}
-			for u := range Db.Users {
-				if UserIn(u, h.Identity) {
-					th := Cache[d][u]
-					if cap(th) == 0 {
-						th = make([]byte, 2048)
-					}
-					Cache[d][u] = append(Cache[d][u], AddHeaders(h.Headers)...)
+					Cache[d][u] = append(Cache[d][u], AddHeaders(a.Headers)...)
 				}
 			}
 		}

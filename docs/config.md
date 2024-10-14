@@ -17,7 +17,7 @@ wrauth doesn't watch the Authelia user database, but it parses that on file chan
 ### wrauth db
 
 ```yaml
-# OPTIONAL: IP to user matching rules
+# REQUIRED: IP to user matching rules
 rules:
     # EITHER: the addresses to match
   - ips:
@@ -30,7 +30,7 @@ rules:
       - 'MJ6JoquFLTf419V5dzkcV1z8TY8SIuPyaSH/1SBBP1o='
     user: 'bob'
 
-# OPTIONAL: access control rules
+# REQUIRED: site specific headers' rules
 access:
   # REQUIRED: the domains to match
   - domains:
@@ -41,31 +41,25 @@ access:
     # OR: the groups to allow
     groups:
       - - 'trusted'
-  # NOTE: only '*' globbing is allowed in 'domains' fields, this matches all domains
+  # NOTE: https://pkg.go.dev/path/filepath#Match
   - domains:
-    - '*'
+    - '*.example.com'
     users:
       - 'superadmin'
-
-# OPTIONAL: site specific headers' rules
-headers:
-  # REQUIRED: the domains to match
   - domains: 
     - 'test.example.com'
     - 'devdb.example.com'
-    # EITHER: the user(s) to match
     users: 
       - 'databaseguy'
       - 'admins'
-    # OR: the groups to match
     groups:
       # NOTE: matches users who are in 'maindbs' or in both 'sys' and 'devs'
       - - 'maindbs'
       - - 'devs' 
         - 'sys'
-    # REQUIRED: the headers to add
+    # OPTIONAL: the headers to add
     headers:
-      # REQUIRED: header name: header value
+      # OPTIONAL: header name: header value
       X-AuthDB-Roles: "devdb"
 
 # REQUIRED: site admin rules

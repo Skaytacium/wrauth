@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"net"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -305,6 +306,12 @@ func BenchmarkUnsafeString(b *testing.B) {
 func BenchmarkGetHostString(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		UFStr(GetHost([]byte("https://some.bull.shit.a")))
+	}
+}
+
+func BenchmarkFilepathMatch(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		filepath.Match("*.example.com", "hi.example.com")
 	}
 }
 

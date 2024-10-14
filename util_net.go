@@ -17,8 +17,7 @@ func ParseUIP(data []byte, addr *uint32) error {
 
 	*addr = 0
 	for i := len(data) - 1; i > -1; i-- {
-		// ASCII .
-		if data[i] == 0x2E {
+		if data[i] == '.' {
 			*addr |= tmp << n
 			tmp = 0
 			rad = 0
@@ -26,8 +25,7 @@ func ParseUIP(data []byte, addr *uint32) error {
 			set++
 			continue
 		}
-		// ASCII 0
-		tmp += uint32((data[i] - 0x30) * rarr[rad])
+		tmp += uint32((data[i] - '0') * rarr[rad])
 		rad++
 	}
 
@@ -49,15 +47,13 @@ func ParseUCIDR(data []byte, addr *uint32, mask *uint32) error {
 
 	*addr = 0
 	for i := len(data) - 1; i > -1; i-- {
-		// ASCII /
-		if data[i] == 0x2F {
+		if data[i] == '/' {
 			*mask = 0xffffffff << (32 - tmp)
 			rad = 0
 			tmp = 0
 			set++
 			continue
-			// ASCII .
-		} else if data[i] == 0x2E {
+		} else if data[i] == '.' {
 			*addr |= tmp << n
 			tmp = 0
 			rad = 0
@@ -65,8 +61,7 @@ func ParseUCIDR(data []byte, addr *uint32, mask *uint32) error {
 			set++
 			continue
 		}
-		// ASCII 0
-		tmp += uint32((data[i] - 0x30) * rarr[rad])
+		tmp += uint32((data[i] - '0') * rarr[rad])
 		rad++
 	}
 
@@ -93,47 +88,33 @@ func ConvIP(ip net.IPNet) IP {
 }
 
 func GetHost(url []byte) []byte {
-	// skip https:// (8)   ASCII /
-	if i := LFind(url[8:], 0x2f); i != 0xffffffff {
+	// skip https:// (8)
+	if i := LFind(url[8:], '/'); i != 0xffffffff {
 		return url[8 : i+8]
 	} else {
 		return url[8:]
 	}
 }
 
-func MatchGlobURL(glob, url string) bool {
-	// ASCII *
-	if glob[0] == 0x2A {
-		if glob[2:] == url[LFind([]byte(url), 0x2E)+1:] {
-			return true
-		}
-	} else if glob == url {
-		return true
-	}
-	return false
-}
-
 // HTTP parsers, faster than O(n)
-// you'll need this...
-// https://www.utf8-chartable.de/unicode-utf8-table.pl?names=2
 func HTAuthReqParse(data []byte, h *HTAuthReq) {
 	// current index, previous index, headers received
 	n, p, c := 1, 1, 0
 
 	switch data[n] {
-	case 0x45:
+	case 'E':
 		// default method
 		// h.Method = HTGet
 		n = 4
-	case 0x4f:
+	case 'O':
 		h.Method = HTPost
 		n = 5
-	case 0x55:
+	case 'U':
 		h.Method = HTPut
 		n = 5
 	}
 	p = n
-	n += LFind(data[n:], 0x20)
+	n += LFind(data[n:], ' ')
 	h.Path = data[p:n]
 
 	// skip _HTTP/1.1\r\n (11)
@@ -141,48 +122,48 @@ func HTAuthReqParse(data []byte, h *HTAuthReq) {
 	p = n
 
 	// atrocious
-	for data[n] != 0x0d {
+	for data[n] != '\r' {
 		switch data[n] {
-		case 0x58:
+		case 'X':
 			// skip till farthest diff character, then till starting
 			// X-Forwarded-For: -> : +2
 			// X-Original-Method: -> o +4
 			// X-Original-URL: -> _ +1
 			n += 15
 			switch data[n] {
-			case 0x3a:
+			case ':':
 				n += 2
 				p = n
-				n += LFind(data[n:], 0x0d)
+				n += LFind(data[n:], '\r')
 				ParseUIP(data[p:n], &h.XRemote.Addr)
 				// all received IPs are /32 by default
 				h.XRemote.Mask = 0xffffffff
 				c++
-			case 0x6f:
+			case 'o':
 				n += 4
 				p = n
-				n += LFind(data[n:], 0x0d)
+				n += LFind(data[n:], '\r')
 				h.XMethod = data[p:n]
 				c++
-			case 0x20:
+			case ' ':
 				n++
 				p = n
-				n += LFind(data[n:], 0x0d)
+				n += LFind(data[n:], '\r')
 				h.XURL = data[p:n]
 				c++
 			default:
-				n += LFind(data[n:], 0x0d)
+				n += LFind(data[n:], '\r')
 			}
-		case 0x43:
+		case 'C':
 			// skip till starting
 			// ookie:_ (8)
 			n += 8
 			p = n
-			n += LFind(data[n:], 0x0d)
+			n += LFind(data[n:], '\r')
 			h.Cookie = data[p:n]
 			c++
 		default:
-			n += LFind(data[n:], 0x0d)
+			n += LFind(data[n:], '\r')
 		}
 		// skip \r\n
 		n += 2
@@ -194,31 +175,31 @@ func HTAuthReqParse(data []byte, h *HTAuthReq) {
 }
 
 func HTAuthResParse(data []byte, h *HTAuthRes) {
-	h.Stat = HTStat(data[11] - 0x30)
+	h.Stat = HTStat(data[11] - '0')
 	if h.Stat != HT200 {
 		return
 	}
 
 	n, p := 17, 17
 
-	for data[n] != 0x0d {
+	for data[n] != '\r' {
 		switch data[n] {
-		case 0x52:
+		case 'R':
 			// skip Remote- (7)
 			n += 7
 			switch data[n] {
-			case 0x55:
+			case 'U':
 				// skip User:_ (6)
 				n += 6
 				p = n
-				n += LFind(data[n:], 0x0d)
+				n += LFind(data[n:], '\r')
 				h.Id = data[p:n]
 				break
 			default:
-				n += LFind(data[n:], 0x0d)
+				n += LFind(data[n:], '\r')
 			}
 		default:
-			n += LFind(data[n:], 0x0d)
+			n += LFind(data[n:], '\r')
 		}
 		n += 2
 	}
