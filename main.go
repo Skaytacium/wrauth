@@ -32,7 +32,10 @@ var Conf = Config{
 var Db DB
 
 var Matches []Match
-var WGs []*wgtypes.Device
+var WGs []struct {
+	*wgtypes.Device
+	data Interface
+}
 
 // on some revelations, maps are the fastest way to do
 // anything out here and theyre equally safe
@@ -120,7 +123,10 @@ func main() {
 			Log.Warnf("wrauth is using userspace WireGuard device %v", inf.Name)
 		}
 
-		WGs = append(WGs, dev)
+		WGs = append(WGs, struct {
+			*wgtypes.Device
+			data Interface
+		}{dev, inf})
 	}
 
 	Log.Infoln("matching IPs to users")

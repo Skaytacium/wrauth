@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/panjf2000/gnet/v2"
 )
 
@@ -40,9 +42,8 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		for _, d := range WGs {
 			for _, p := range d.Peers {
 				for _, a := range p.AllowedIPs {
-					Log.Debugf("%+v", a)
 					ip := ConvIP(a)
-					if CompareUIP(&req.XRemote, &ip) {
+					if CompareUIP(&req.XRemote, &ip) && p.LastHandshakeTime.Add(time.Duration(d.data.Shake)*time.Second).After(time.Now()) {
 						w = true
 					}
 				}

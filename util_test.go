@@ -299,6 +299,12 @@ func BenchmarkTimeNow(b *testing.B) {
 	}
 }
 
+func BenchmarkTimeSub(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		time.Now().Add(time.Duration(50) * time.Second).After(time.Now())
+	}
+}
+
 func BenchmarkWireGuard(b *testing.B) {
 	wg, _ := wgctrl.New()
 	dev, _ := wg.Device("wg0")

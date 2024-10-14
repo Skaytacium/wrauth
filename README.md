@@ -67,7 +67,7 @@ there's quite a bit left for the first complete release, which I'll do on a slow
     - use [fasthttp](https://github.com/valyala/fasthttp) for a proper server
     - check that the user is truly over HTTPS
 - tighter security
-    - actually verify that matched IP addresses are active from WireGuard interfaces
+    - ~~actually verify that matched IP addresses are active from WireGuard interfaces~~
     - recheck entire codebase, test edge cases
     - ~~perhaps a better way to cache?~~
 - go even faster...
