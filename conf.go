@@ -49,7 +49,7 @@ func CheckConf() error {
 			Conf.Interfaces[i].Conf = "/etc/wireguard/" + inf.Name + ".conf"
 		}
 		if inf.Shake == 0 {
-			Conf.Interfaces[i].Shake = 300
+			Conf.Interfaces[i].Shake = 150
 		}
 	}
 
