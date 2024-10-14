@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 	"unsafe"
+
+	"golang.zx2c4.com/wireguard/wgctrl"
 )
 
 func BenchmarkNetParseCIDR(b *testing.B) {
@@ -54,6 +56,22 @@ func BenchmarkCompareUIP(b *testing.B) {
 			Mask: 0xffffff00,
 		}) {
 
+		}
+	}
+}
+
+func BenchmarkIPConv(b *testing.B) {
+	ip := net.IPNet{
+		IP:   net.IPv4(129, 168, 255, 235),
+		Mask: net.IPv4Mask(255, 255, 255, 0),
+	}
+	for i := 0; i < b.N; i++ {
+		t := IP{
+			Addr: ToUint32([4]byte(ip.IP)),
+			Mask: ToUint32([4]byte(ip.Mask)),
+		}
+		if t.Mask != 0xffffff00 {
+			b.Error()
 		}
 	}
 }
@@ -272,5 +290,22 @@ func BenchmarkUserIn(b *testing.B) {
 	}
 	for i := 0; i < b.N; i++ {
 		UserIn(uid, id)
+	}
+}
+
+func BenchmarkTimeNow(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		time.Now()
+	}
+}
+
+func BenchmarkWireGuard(b *testing.B) {
+	wg, _ := wgctrl.New()
+	dev, _ := wg.Device("wg0")
+
+	for i := 0; i < b.N; i++ {
+		for _, p := range dev.Peers {
+			p = p
+		}
 	}
 }

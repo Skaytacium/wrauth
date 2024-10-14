@@ -51,9 +51,6 @@ func CheckConf() error {
 		if inf.Shake == 0 {
 			Conf.Interfaces[i].Shake = 300
 		}
-		if inf.Watch == 0 {
-			Conf.Interfaces[i].Watch = 15
-		}
 	}
 
 	return nil

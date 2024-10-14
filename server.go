@@ -36,9 +36,21 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		return CompareUIP(&req.XRemote, &m.Ip)
 	})
 	if m != nil {
+		w := false
+		for _, d := range WGs {
+			for _, p := range d.Peers {
+				for _, a := range p.AllowedIPs {
+					Log.Debugf("%+v", a)
+					ip := ConvIP(a)
+					if CompareUIP(&req.XRemote, &ip) {
+						w = true
+					}
+				}
+			}
+		}
 		_, allowed := Cache[reqdom][m.Id]
 		_, globbed := Cache["*"][m.Id]
-		if allowed || globbed {
+		if w && (allowed || globbed) {
 			user := Db.Users[m.Id]
 			n = HTAuthResGen(res, m.Id, &user, HT200)
 			id = m.Id

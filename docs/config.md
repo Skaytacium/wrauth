@@ -130,12 +130,36 @@ interfaces:
     # OPTIONAL: the configuration file
     # DEFAULT: /etc/wireguard/<name>.conf
     conf: '/etc/wireguard/wg.conf'
-    # OPTIONAL: how often peer list cache is updated in seconds
-    # DEFAULT: 15
-    watch: 5
   - name: 'wg1'
     addr: '172.16.0.1'
     # OPTIONAL: time from the last handshake to consider a connection closed
     # DEFAULT: 150
     shake: 300
+```
+
+### Authelia configuration
+
+this is just the recommended Authelia configuration demonstration how it should be used with wrauth. notice how **there are no network based rules**, this is important, so that there are no accidental conflicting rules in wrauth, e.g. wrauth disallows `10.0.0.5` (intended) but Authelia has bypassed that entire network (accidental), so wrauth requests Authelia and it immediately responds with 200 OK, causing wrauth to reply with that.
+
+```yaml
+  rules:
+    # public, allow everybody
+    - domain:
+      - 'example.com'
+      - 'www.example.com'
+      - 'public.example.com'
+      policy: 'bypass'
+    # semi-private, allow everybody who's either on the VPN or authenticated
+    - domain: [ 'semi.example.com' ]
+      policy: 'bypass'
+      networks: 'vpn'
+    - domain: [ 'semi.example.com' ]
+      policy: 'two_factor'
+    # private, allow only specific users
+    - domain: '*.example.com'
+      policy: 'two_factor'
+      subject: 'group:admins' 
+    - domain: [ 'db.example.com', 'git.example.com' ]
+      policy: 'two_factor'
+      subject: 'group:devs'
 ```

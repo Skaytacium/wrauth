@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 )
 
 // most of these are highly optimized prematurely, not for
@@ -82,6 +83,13 @@ func ParseUCIDR(data []byte, addr *uint32, mask *uint32) error {
 // uses the 2nd IP's mask
 func CompareUIP(a, b *IP) bool {
 	return (a.Addr^b.Addr)&b.Mask == 0
+}
+
+func ConvIP(ip net.IPNet) IP {
+	return IP{
+		Addr: ToUint32([4]byte(ip.IP)),
+		Mask: ToUint32([4]byte(ip.Mask)),
+	}
 }
 
 func GetHost(url []byte) []byte {

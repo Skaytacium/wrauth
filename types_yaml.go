@@ -60,7 +60,6 @@ type Interface struct {
 	Name  string
 	Addr  IP
 	Conf  string
-	Watch int
 	Shake int
 }
 

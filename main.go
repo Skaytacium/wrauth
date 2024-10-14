@@ -33,7 +33,6 @@ var Db DB
 
 var Matches []Match
 var WGs []*wgtypes.Device
-var WGPeers []IP
 
 // on some revelations, maps are the fastest way to do
 // anything out here and theyre equally safe
@@ -89,7 +88,7 @@ func main() {
 	}
 
 	if !Conf.Caching {
-		Log.Warnln("caching is disabled, expect a severe performance penalty for all Authelia requests")
+		Log.Warnln("caching is disabled for all Authelia requests")
 	}
 
 	fswatch, err := fsnotify.NewWatcher()
@@ -111,25 +110,17 @@ func main() {
 	}
 	defer wgclient.Close()
 
-	Log.Infoln("adding WireGuard interfaces & peers")
+	Log.Infoln("adding WireGuard interfaces")
 	for _, inf := range Conf.Interfaces {
 		dev, err := wgclient.Device(inf.Name)
 		if err != nil {
 			Log.Fatalf("WireGuard device %v: %v", inf.Name, err)
 		}
+		if dev.Type != wgtypes.LinuxKernel {
+			Log.Warnf("wrauth is using userspace WireGuard device %v", inf.Name)
+		}
 
 		WGs = append(WGs, dev)
-
-		Log.Debugf("%+v", inf)
-
-		go func() {
-			time := time.NewTicker(time.Duration(inf.Watch) * time.Second)
-			for {
-				<-time.C
-				Log.Debugf("refreshing peers for %v", inf.Name)
-				AddPeers(dev)
-			}
-		}()
 	}
 
 	Log.Infoln("matching IPs to users")

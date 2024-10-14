@@ -77,7 +77,7 @@ func AddMatches() error {
 				for _, ip := range CFind(&wg.Peers, func(a wgtypes.Peer) bool {
 					return a.PublicKey.String() == k
 				}).AllowedIPs {
-					if err := addMatch(IP{Addr: ToUint32([4]byte(ip.IP)), Mask: ToUint32([4]byte(ip.Mask))}, v.User); err != nil {
+					if err := addMatch(ConvIP(ip), v.User); err != nil {
 						return err
 					}
 				}
@@ -131,6 +131,7 @@ func AddCache() error {
 	return nil
 }
 
+/*
 func AddPeers(wg *wgtypes.Device) {
 	for _, p := range wg.Peers {
 		for _, ip := range p.AllowedIPs {
@@ -143,3 +144,4 @@ func AddPeers(wg *wgtypes.Device) {
 		}
 	}
 }
+*/
