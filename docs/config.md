@@ -30,7 +30,7 @@ rules:
       - 'MJ6JoquFLTf419V5dzkcV1z8TY8SIuPyaSH/1SBBP1o='
     user: 'bob'
 
-# REQUIRED: site specific headers' rules
+# REQUIRED: access control rules
 access:
   # REQUIRED: the domains to match
   - domains:
@@ -57,7 +57,7 @@ access:
       - - 'maindbs'
       - - 'devs' 
         - 'sys'
-    # OPTIONAL: the headers to add
+    # OPTIONAL: any site specific headers to add
     headers:
       # OPTIONAL: header name: header value
       X-AuthDB-Roles: "devdb"
