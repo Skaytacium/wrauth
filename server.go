@@ -61,14 +61,17 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		goto response
 	}
 	if Conf.Caching {
-		if cid, ok := AuthCache[reqdom][UFStr(req.Cookie)]; ok {
+		AuthCache.RLock()
+		if cid, ok := AuthCache.cache[reqdom][UFStr(req.Cookie[17:17+32])]; ok {
 			if cid != "" {
 				user := Db.Users[cid]
 				n = HTAuthResGen(res, cid, &user, HT200)
 				id = cid
 			}
+			AuthCache.RUnlock()
 			goto response
 		}
+		AuthCache.RUnlock()
 	}
 
 	// it takes ~300/330us for the entire request,
@@ -118,19 +121,22 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 			subres := HTAuthRes{}
 			HTAuthResParse(res, &subres)
 
-			umap, ok := AuthCache[reqdom]
-			if !ok {
-				umap = make(map[string]string)
-			}
-
 			if subres.Stat != HT401 {
-				// convert using string here, so as to copy the byte slice
-				// instead of reusing, since it's dependent on `res`, which
-				// doesn't get released only reused
-				umap[UFStr(req.Cookie)] = string(subres.Id)
-			}
+				AuthCache.RLock()
+				umap, ok := AuthCache.cache[reqdom]
+				AuthCache.RUnlock()
+				if !ok {
+					AuthCache.Lock()
+					umap = make(map[string]string)
+					// convert using string here, so as to copy the byte slice
+					// instead of reusing, since it's dependent on `res`, which
+					// doesn't get released only reused
+					umap[UFStr(req.Cookie[17:32+17])] = string(subres.Id)
 
-			AuthCache[reqdom] = umap
+					AuthCache.cache[reqdom] = umap
+					AuthCache.Unlock()
+				}
+			}
 		}
 		goto response
 	}

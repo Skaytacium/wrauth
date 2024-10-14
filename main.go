@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -41,7 +42,10 @@ var WGs []struct {
 // anything out here and theyre equally safe
 
 // host -> cookie -> id
-var AuthCache map[string]map[string]string
+var AuthCache struct {
+	sync.RWMutex
+	cache map[string]map[string]string
+}
 
 // host -> user -> headers
 var Cache map[string]map[string][]byte
@@ -177,13 +181,15 @@ func main() {
 		}
 	}()
 
-	AuthCache = make(map[string]map[string]string)
+	AuthCache.cache = make(map[string]map[string]string)
 	go func() {
 		tick := time.NewTicker(time.Duration(Conf.Authelia.Cache) * time.Second)
 		for {
 			<-tick.C
 			Log.Debugln("clearing Authelia cache")
-			AuthCache = make(map[string]map[string]string)
+			AuthCache.Lock()
+			AuthCache.cache = make(map[string]map[string]string)
+			AuthCache.Unlock()
 		}
 	}()
 

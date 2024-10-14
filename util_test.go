@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 	"unsafe"
@@ -253,6 +254,30 @@ func BenchmarkMapHash(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		_ = cache["https://test.example.com"]["morehashing"]["lasthash"]
+	}
+}
+
+func BenchmarkSyncMapHash(b *testing.B) {
+	cache := sync.Map{}
+	cache.Store("test", "test")
+	for i := 0; i < b.N; i++ {
+		cache.Load("test")
+	}
+}
+
+func BenchmarkRWMutex(b *testing.B) {
+	mut := sync.RWMutex{}
+	for i := 0; i < b.N; i++ {
+		mut.Lock()
+		mut.Unlock()
+	}
+}
+
+func BenchmarkRWMutexR(b *testing.B) {
+	mut := sync.RWMutex{}
+	for i := 0; i < b.N; i++ {
+		mut.RLock()
+		mut.RUnlock()
 	}
 }
 
