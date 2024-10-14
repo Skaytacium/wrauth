@@ -72,7 +72,7 @@ there's quite a bit left for the first complete release, which I'll do on a slow
     - ~~perhaps a better way to cache?~~
 - go even faster...
     - somehow manage to benchmark HTTP over unix domain sockets
-    - actually add current benchmarks
+    - ~~actually add current benchmarks~~
     - ~~cache access control rules and site-specific headers~~
 - modularize
     - seperate Authelia specific code, so that adding other authentication backgrounds isn't hard
@@ -81,6 +81,7 @@ there's quite a bit left for the first complete release, which I'll do on a slow
     - add fast regexp for site-specific headers
     - ~~better panic handling~~
     - safer code (in the memory sense, some of the optimized functions are quite "raw")
+    - ~~safer code (in the concurrency sense, some of these could be fatal)~~
 
 ### Windows?
 
