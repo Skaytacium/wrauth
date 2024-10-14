@@ -81,7 +81,7 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 	if Conf.Caching {
 		AuthCache.RLock()
 		if cid, ok := AuthCache.cache[reqdom][UFStr(req.Cookie[17:17+32])]; ok {
-			Log.Debugf("cookie: %v cached as user: %v", req.Cookie, cid)
+			Log.Debugf("cached as user: %v", cid)
 			if cid != "" {
 				user := Db.Users[cid]
 				n = HTAuthResGen(res, cid, &user, HT200)
@@ -107,7 +107,7 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 	//
 	// if true is used for allowing goto statements
 	if true {
-		Log.Debugln("subrequesting Authelia")
+		Log.Debugln("cache missed, subrequesting Authelia")
 		// ~10-15us
 		notif := make(chan int)
 		// ~40-50 us
