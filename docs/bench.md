@@ -13,7 +13,7 @@ benchmarks on loopback, atleast on my machines for wrauth. made using [wrk](http
 
 a frequency after the CPU is the frequency that it's locked to.
 
-averaged, roughly rounded and written in the format: `Requests/sec/thread, Avg Latency/us, Stdev Latency/us`  
+averaged, roughly rounded and written in the format: `Requests/sec, Avg Latency/us, Stdev Latency/us`  
 
 Authelia (to establish the base speed) format: 
 ```
