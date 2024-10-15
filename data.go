@@ -73,7 +73,7 @@ func addMatch(ip IP, name string) error {
 func AddMatches() error {
 	for _, v := range Db.Rules {
 		for _, k := range v.Pubkeys {
-			for _, wg := range WGs {
+			for _, wg := range WGInfs {
 				for _, ip := range CFind(&wg.Peers, func(a wgtypes.Peer) bool {
 					return a.PublicKey.String() == k
 				}).AllowedIPs {

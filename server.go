@@ -46,7 +46,7 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		Log.Debugln("IP matched user:", m.Id)
 		w := false
 		// i hate this
-		for _, d := range WGs {
+		for _, d := range WGInfs {
 			for _, p := range d.Peers {
 				for _, a := range p.AllowedIPs {
 					ip := ConvIP(a)

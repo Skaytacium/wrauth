@@ -22,8 +22,8 @@ var Args struct {
 var Conf Config
 var Db DB
 var Matches []Match
-var WGclient *wgctrl.Client
-var WGs []struct {
+var WGClient *wgctrl.Client
+var WGInfs []struct {
 	*wgtypes.Device
 	data Interface
 }
@@ -68,6 +68,10 @@ func main() {
 	Args.DB = *flag.String("db", "./db.yaml", "location of the database file")
 	flag.Parse()
 
+	if err := LoadFiles(); err != nil {
+		Log.Fatalln("loading files:", err)
+	}
+
 	fswatch, err := fsnotify.NewWatcher()
 	if err != nil {
 		Log.Fatalln("filesystem watcher creation:", err)
@@ -76,20 +80,18 @@ func main() {
 
 	go WatchFS(fswatch)
 
+	Log.Debugln("watching directory:", filepath.Dir(Args.Config))
 	if err = fswatch.Add(filepath.Dir(Args.Config)); err != nil {
 		Log.Fatalln("filesytem watch:", err)
 	}
 
-	WGclient, err := wgctrl.New()
+	WGClient, err = wgctrl.New()
 	if err != nil {
 		Log.Fatalln("WireGuard client creation:", err)
 	}
-	defer WGclient.Close()
+	defer WGClient.Close()
 
-	if err := LoadFiles(); err != nil {
-		Log.Fatalln("loading files:", err)
-	}
-	if err := LoadData(WGclient); err != nil {
+	if err := LoadData(); err != nil {
 		Log.Fatalln("processing data:", err)
 	}
 
@@ -110,7 +112,6 @@ func main() {
 		Log.Fatalln("TCP client starting:", err)
 	}
 
-	Log.Debugln("creating Authelia connections")
 	Conns = make(chan gnet.Conn, Conf.Authelia.Connections)
 	if err = CreateConnections(C); err != nil {
 		Log.Fatalln(err)

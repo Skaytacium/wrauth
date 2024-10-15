@@ -6,7 +6,6 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"go.uber.org/zap"
-	"golang.zx2c4.com/wireguard/wgctrl"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
@@ -100,11 +99,12 @@ func WatchFS(w *fsnotify.Watcher) {
 			}
 			if ev.Op == fsnotify.Write && (strings.Contains(ev.Name, Args.Config) || strings.Contains(ev.Name, Args.DB)) {
 				if send {
+					Log.Infoln("file changed:", ev.Name)
 					Clear()
 					if err := LoadFiles(); err != nil {
 						Log.Fatalln("loading files:", err)
 					}
-					if err := LoadData(WGclient); err != nil {
+					if err := LoadData(); err != nil {
 						Log.Fatalln("processing data:", err)
 					}
 				}
@@ -115,7 +115,6 @@ func WatchFS(w *fsnotify.Watcher) {
 }
 
 func Clear() {
-	Log.Infoln("clearing everything and loading defaults")
 	Conf = Config{
 		Address: "127.0.0.1:9092",
 		Level:   zap.NewAtomicLevel(),
@@ -129,7 +128,7 @@ func Clear() {
 	}
 	Db = DB{}
 	Matches = nil
-	WGs = nil
+	WGInfs = nil
 	Cache = make(map[string]map[string][]byte)
 }
 
@@ -137,25 +136,28 @@ func LoadFiles() error {
 	if err := ParseFiles(); err != nil {
 		return fmt.Errorf("parsing: %w", err)
 	}
+	Log.Debugln("checking configuration")
 	if err := CheckConf(); err != nil {
 		return fmt.Errorf("configuration: %w", err)
 	}
 	if !Conf.Caching {
 		Log.Warnln("caching is disabled for all Authelia requests")
 	}
+	Log.Debugln("checking database")
 	if err := CheckDB(); err != nil {
 		return fmt.Errorf("database: %w", err)
 	}
 	return nil
 }
 
-func LoadData(wgclient *wgctrl.Client) error {
+func LoadData() error {
+	Log.Debugln("adding cache")
 	if err := AddCache(); err != nil {
 		return fmt.Errorf("caching: %w", err)
 	}
 
 	for _, inf := range Conf.Interfaces {
-		dev, err := wgclient.Device(inf.Name)
+		dev, err := WGClient.Device(inf.Name)
 		if err != nil {
 			return fmt.Errorf("WireGuard device %v: %w", inf.Name, err)
 		}
@@ -163,12 +165,14 @@ func LoadData(wgclient *wgctrl.Client) error {
 			Log.Warnf("wrauth is using userspace WireGuard device %v", inf.Name)
 		}
 
-		WGs = append(WGs, struct {
+		Log.Debugln("adding interface:", inf.Name)
+		WGInfs = append(WGInfs, struct {
 			*wgtypes.Device
 			data Interface
 		}{dev, inf})
 	}
 
+	Log.Debugln("adding IP matches")
 	// needs WireGuard setup
 	if err := AddMatches(); err != nil {
 		return fmt.Errorf("matching: %w", err)

@@ -10,10 +10,10 @@ type CHandler struct {
 	gnet.BuiltinEventEngine
 }
 
-func (ev *CHandler) OnOpen(_ gnet.Conn) ([]byte, gnet.Action) {
-	Log.Debugln("Authelia connection opened")
-	return nil, gnet.None
-}
+// func (ev *CHandler) OnOpen(_ gnet.Conn) ([]byte, gnet.Action) {
+// 	Log.Debugln("Authelia connection opened")
+// 	return nil, gnet.None
+// }
 
 func (ev *CHandler) OnClose(_ gnet.Conn, _ error) gnet.Action {
 	Log.Debugln("Authelia connection closed")
