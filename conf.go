@@ -100,8 +100,12 @@ func WatchFS(w *fsnotify.Watcher) {
 			}
 			if ev.Op == fsnotify.Write && (strings.Contains(ev.Name, Args.Config) || strings.Contains(ev.Name, Args.DB)) {
 				if send {
-					if err := Load(WGclient); err != nil {
-						Log.Fatalln("loading:", err)
+					Clear()
+					if err := LoadFiles(); err != nil {
+						Log.Fatalln("loading files:", err)
+					}
+					if err := LoadData(WGclient); err != nil {
+						Log.Fatalln("processing data:", err)
 					}
 				}
 				send = !send
@@ -110,8 +114,8 @@ func WatchFS(w *fsnotify.Watcher) {
 	}
 }
 
-func Load(wgclient *wgctrl.Client) error {
-	Log.Debugln("loading defaults")
+func Clear() {
+	Log.Infoln("clearing everything and loading defaults")
 	Conf = Config{
 		Address: "127.0.0.1:9092",
 		Level:   zap.NewAtomicLevel(),
@@ -127,27 +131,29 @@ func Load(wgclient *wgctrl.Client) error {
 	Matches = nil
 	WGs = nil
 	Cache = make(map[string]map[string][]byte)
-	Log.Debugln("parsing files")
+}
+
+func LoadFiles() error {
 	if err := ParseFiles(); err != nil {
 		return fmt.Errorf("parsing: %w", err)
 	}
-	Log.Debugln("checking configuration")
 	if err := CheckConf(); err != nil {
 		return fmt.Errorf("configuration: %w", err)
 	}
 	if !Conf.Caching {
 		Log.Warnln("caching is disabled for all Authelia requests")
 	}
-	Log.Debugln("checking database")
 	if err := CheckDB(); err != nil {
 		return fmt.Errorf("database: %w", err)
 	}
-	Log.Debugln("caching access control and headers")
+	return nil
+}
+
+func LoadData(wgclient *wgctrl.Client) error {
 	if err := AddCache(); err != nil {
 		return fmt.Errorf("caching: %w", err)
 	}
 
-	Log.Debugln("adding WireGuard interfaces")
 	for _, inf := range Conf.Interfaces {
 		dev, err := wgclient.Device(inf.Name)
 		if err != nil {
@@ -163,11 +169,9 @@ func Load(wgclient *wgctrl.Client) error {
 		}{dev, inf})
 	}
 
-	Log.Debugln("matching IPs to users")
 	// needs WireGuard setup
 	if err := AddMatches(); err != nil {
 		return fmt.Errorf("matching: %w", err)
 	}
-
 	return nil
 }

@@ -45,6 +45,8 @@ var C *gnet.Client
 var Conns chan gnet.Conn
 
 func main() {
+	Clear()
+
 	Log = zap.Must(zap.Config{
 		Level:    Conf.Level,
 		Encoding: "console",
@@ -74,21 +76,21 @@ func main() {
 
 	go WatchFS(fswatch)
 
-	Log.Debugln("watching configuration directory")
 	if err = fswatch.Add(filepath.Dir(Args.Config)); err != nil {
 		Log.Fatalln("filesytem watch:", err)
 	}
 
-	Log.Debugln("creating WireGuard client")
 	WGclient, err := wgctrl.New()
 	if err != nil {
 		Log.Fatalln("WireGuard client creation:", err)
 	}
 	defer WGclient.Close()
 
-	Log.Debugln("loading configuration")
-	if err = Load(WGclient); err != nil {
-		Log.Fatalln("loading:", err)
+	if err := LoadFiles(); err != nil {
+		Log.Fatalln("loading files:", err)
+	}
+	if err := LoadData(WGclient); err != nil {
+		Log.Fatalln("processing data:", err)
 	}
 
 	C, err = gnet.NewClient(
