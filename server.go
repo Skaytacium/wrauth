@@ -60,9 +60,9 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		_, allowed := Cache[reqdom][m.Id]
 		if !allowed {
 			Log.Debugln("direct match doesn't exist, checking globs")
-			for u := range Cache {
+			for u, sub := range Cache {
 				if g, err := filepath.Match(u, reqdom); g && err == nil {
-					allowed = true
+					_, allowed = sub[m.Id]
 				}
 			}
 		}
