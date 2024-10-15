@@ -78,20 +78,20 @@ func main() {
 
 	Log.Debugln("parsing files")
 	if err := ParseFiles(); err != nil {
-		Log.Fatalln("parsing: ", err)
+		Log.Fatalln("parsing:", err)
 	}
 	Log.Debugln("checking configuration")
 	if err := CheckConf(); err != nil {
-		Log.Fatalln("configuration: ", err)
+		Log.Fatalln("configuration:", err)
 	}
 	Log.Debugln("checking database")
 	if err := CheckDB(); err != nil {
-		Log.Fatalln("database: ", err)
+		Log.Fatalln("database:", err)
 	}
 	Log.Debugln("caching access control and headers")
 	Cache = make(map[string]map[string][]byte)
 	if err := AddCache(); err != nil {
-		Log.Fatalln("caching: ", err)
+		Log.Fatalln("caching:", err)
 	}
 
 	if !Conf.Caching {
@@ -100,7 +100,7 @@ func main() {
 
 	fswatch, err := fsnotify.NewWatcher()
 	if err != nil {
-		Log.Fatalln("filesystem watcher creation: ", err)
+		Log.Fatalln("filesystem watcher creation:", err)
 	}
 	defer fswatch.Close()
 
@@ -108,12 +108,12 @@ func main() {
 
 	Log.Debugln("watching configuration directory")
 	if err = fswatch.Add(filepath.Dir(Args.Config)); err != nil {
-		Log.Fatalln("filesytem watch: ", err)
+		Log.Fatalln("filesytem watch:", err)
 	}
 
 	wgclient, err := wgctrl.New()
 	if err != nil {
-		Log.Fatalln("WireGuard client creation: ", err)
+		Log.Fatalln("WireGuard client creation:", err)
 	}
 	defer wgclient.Close()
 
@@ -121,7 +121,7 @@ func main() {
 	for _, inf := range Conf.Interfaces {
 		dev, err := wgclient.Device(inf.Name)
 		if err != nil {
-			Log.Fatalln("WireGuard device %v: ", inf.Name, err)
+			Log.Fatalln("WireGuard device %v:", inf.Name, err)
 		}
 		if dev.Type != wgtypes.LinuxKernel {
 			Log.Warnf("wrauth is using userspace WireGuard device %v", inf.Name)
@@ -136,7 +136,7 @@ func main() {
 	Log.Debugln("matching IPs to users")
 	// needs WireGuard setup
 	if err := AddMatches(); err != nil {
-		Log.Fatalln("matching: ", err)
+		Log.Fatalln("matching:", err)
 	}
 
 	C, err = gnet.NewClient(
@@ -150,10 +150,10 @@ func main() {
 		gnet.WithLogLevel(Conf.Level.Level()),
 	)
 	if err != nil {
-		Log.Fatalln("TCP client creation: ", err)
+		Log.Fatalln("TCP client creation:", err)
 	}
 	if err := C.Start(); err != nil {
-		Log.Fatalln("TCP client starting: ", err)
+		Log.Fatalln("TCP client starting:", err)
 	}
 	Conns = make(chan gnet.Conn, Conf.Authelia.Connections)
 	Log.Debugln("creating Authelia connections")
@@ -204,6 +204,6 @@ func main() {
 		gnet.WithLogger(Log),
 		gnet.WithLogLevel(Conf.Level.Level()),
 	); err != nil {
-		Log.Fatalln("server creation: ", err)
+		Log.Fatalln("server creation:", err)
 	}
 }

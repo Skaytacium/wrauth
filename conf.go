@@ -90,14 +90,14 @@ func WatchFS(w *fsnotify.Watcher) {
 			if !ok {
 				return
 			}
-			Log.Fatalln("file watch: ", err)
+			Log.Fatalln("file watch:", err)
 		case ev, ok := <-w.Events:
 			if !ok {
 				return
 			}
 			if ev.Op == fsnotify.Write && (strings.Contains(ev.Name, Args.Config) || strings.Contains(ev.Name, Args.DB)) {
 				if send {
-					Log.Infoln("file updated: ", ev.Name)
+					Log.Infoln("file updated:", ev.Name)
 					if err := ParseFiles(); err != nil {
 						Log.Errorf("parsing: %v", err)
 					}

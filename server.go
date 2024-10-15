@@ -35,15 +35,15 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 	// used a lot
 	reqdom := UFStr(GetHost(req.XURL))
 
-	Log.Debugln("IP: ", req.XRemote)
-	Log.Debugln("domain: ", reqdom)
-	Log.Debugln("cookie: ", UFStr(req.Cookie))
+	Log.Debugln("IP:", req.XRemote)
+	Log.Debugln("domain:", reqdom)
+	Log.Debugln("cookie:", UFStr(req.Cookie))
 
 	m := CFind(&Matches, func(m Match) bool {
 		return CompareUIP(&req.XRemote, &m.Ip)
 	})
 	if m != nil {
-		Log.Debugln("IP matched user: ", m.Id)
+		Log.Debugln("IP matched user:", m.Id)
 		w := false
 		// i hate this
 		for _, d := range WGs {
@@ -72,8 +72,8 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 			Log.Debugln("glob match doesn't exist, checking bypasses")
 			_, allowed = Cache[reqdom]["*"]
 		}
-		Log.Debugln("active over WireGuard: ", w)
-		Log.Debugln("allowed in domains: ", allowed)
+		Log.Debugln("active over WireGuard:", w)
+		Log.Debugln("allowed in domains:", allowed)
 		if w && allowed {
 			user := Db.Users[m.Id]
 			n = HTAuthResGen(res, m.Id, &user, HT200)
@@ -88,7 +88,7 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		if len(req.Cookie) >= 49 && UFStr(req.Cookie[:17]) == "authelia_session=" {
 			AuthCache.RLock()
 			if cid, ok := AuthCache.cache[reqdom][UFStr(req.Cookie[17:17+32])]; ok {
-				Log.Debugln("cached as user: ", cid)
+				Log.Debugln("cached as user:", cid)
 				if cid != "" {
 					user := Db.Users[cid]
 					n = HTAuthResGen(res, cid, &user, HT200)
@@ -153,7 +153,7 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 			subres := HTAuthRes{}
 			HTAuthResParse(res, &subres)
 
-			Log.Debugln("subrequest status: ", subres.Stat)
+			Log.Debugln("subrequest status:", subres.Stat)
 			if subres.Stat != HT401 {
 				AuthCache.RLock()
 				umap, ok := AuthCache.cache[reqdom]

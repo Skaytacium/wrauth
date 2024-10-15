@@ -15,9 +15,9 @@ import (
 // func AuthHash(url []byte, cookie []byte, hash *uint256.Int) {
 // 	if len(cookie) < 25 {
 // 		if !CompareSlice(cookie[0:17], []byte("authelia_session")) {
-// 			Log.Fatalln("cookie not from Authelia: ", string(cookie))
+// 			Log.Fatalln("cookie not from Authelia:", string(cookie))
 // 		}
-// 		Log.Fatalln("cookie not long enough: ", string(cookie))
+// 		Log.Fatalln("cookie not long enough:", string(cookie))
 // 	}
 
 // 	// start after authelia_session= (17) (256 bit cookie)         start after https:// (8)
