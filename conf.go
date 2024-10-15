@@ -72,7 +72,7 @@ func CheckDB() error {
 			return fmt.Errorf("access: domains not configured")
 		}
 		if len(a.Users) == 0 && len(a.Groups) == 0 {
-			return fmt.Errorf("access: neither users nor groups configured")
+			return fmt.Errorf("access: neither users nor groups configured for %v", a.Domains)
 		}
 	}
 	if len(Db.Admins.Users) == 0 && len(Db.Admins.Groups) == 0 {

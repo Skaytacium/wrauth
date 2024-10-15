@@ -61,16 +61,16 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 	active:
 		_, allowed := Cache[reqdom][m.Id]
 		if !allowed {
-			Log.Debugln("direct match doesn't exist, checking globs")
+			Log.Debugln("direct match doesn't exist, checking bypasses")
+			_, allowed = Cache[reqdom]["*"]
+		}
+		if !allowed {
+			Log.Debugln(reqdom, "not bypassed, checking globs")
 			for u, sub := range Cache {
 				if g, err := filepath.Match(u, reqdom); g && err == nil {
 					_, allowed = sub[m.Id]
 				}
 			}
-		}
-		if !allowed {
-			Log.Debugln("glob match doesn't exist, checking bypasses")
-			_, allowed = Cache[reqdom]["*"]
 		}
 		Log.Debugln("active over WireGuard:", w)
 		Log.Debugln("allowed in domains:", allowed)
