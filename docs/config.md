@@ -49,6 +49,11 @@ access:
     - '*.example.com'
     users:
       - 'superadmin'
+  - domains:
+    - 'public.example.com'
+    users:
+      # NOTE: allow all users (this is how you bypass)
+      - '*'
   - domains: 
     - 'test.example.com'
     - 'devdb.example.com'

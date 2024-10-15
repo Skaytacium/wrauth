@@ -15,9 +15,9 @@ import (
 // func AuthHash(url []byte, cookie []byte, hash *uint256.Int) {
 // 	if len(cookie) < 25 {
 // 		if !CompareSlice(cookie[0:17], []byte("authelia_session")) {
-// 			Log.Fatalf("cookie not from Authelia: %v", string(cookie))
+// 			Log.Fatalln("cookie not from Authelia: ", string(cookie))
 // 		}
-// 		Log.Fatalf("cookie not long enough: %v", string(cookie))
+// 		Log.Fatalln("cookie not long enough: ", string(cookie))
 // 	}
 
 // 	// start after authelia_session= (17) (256 bit cookie)         start after https:// (8)
@@ -97,6 +97,10 @@ func AddCache() error {
 		for _, d := range a.Domains {
 			if _, ok := Cache[d]; !ok {
 				Cache[d] = make(map[string][]byte)
+			}
+			if len(a.Identity.Users) == 1 && a.Identity.Users[0] == "*" {
+				Cache[d]["*"] = append(Cache[d]["*"], AddHeaders(a.Headers)...)
+				continue
 			}
 			for u := range Db.Users {
 				if UserIn(u, a.Identity) {
