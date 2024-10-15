@@ -19,20 +19,10 @@ var Args struct {
 	DB     string
 }
 
-var Conf = Config{
-	Address: "127.0.0.1:9092",
-	Level:   zap.NewAtomicLevel(),
-	Caching: true,
-	Theme:   "gruvbox-dark",
-	Authelia: Authelia{
-		Connections: 64,
-		Cache:       300,
-		Ping:        25,
-	},
-}
+var Conf Config
 var Db DB
-
 var Matches []Match
+var WGclient *wgctrl.Client
 var WGs []struct {
 	*wgtypes.Device
 	data Interface
@@ -76,28 +66,6 @@ func main() {
 	Args.DB = *flag.String("db", "./db.yaml", "location of the database file")
 	flag.Parse()
 
-	Log.Debugln("parsing files")
-	if err := ParseFiles(); err != nil {
-		Log.Fatalln("parsing:", err)
-	}
-	Log.Debugln("checking configuration")
-	if err := CheckConf(); err != nil {
-		Log.Fatalln("configuration:", err)
-	}
-	Log.Debugln("checking database")
-	if err := CheckDB(); err != nil {
-		Log.Fatalln("database:", err)
-	}
-	Log.Debugln("caching access control and headers")
-	Cache = make(map[string]map[string][]byte)
-	if err := AddCache(); err != nil {
-		Log.Fatalln("caching:", err)
-	}
-
-	if !Conf.Caching {
-		Log.Warnln("caching is disabled for all Authelia requests")
-	}
-
 	fswatch, err := fsnotify.NewWatcher()
 	if err != nil {
 		Log.Fatalln("filesystem watcher creation:", err)
@@ -111,32 +79,16 @@ func main() {
 		Log.Fatalln("filesytem watch:", err)
 	}
 
-	wgclient, err := wgctrl.New()
+	Log.Debugln("creating WireGuard client")
+	WGclient, err := wgctrl.New()
 	if err != nil {
 		Log.Fatalln("WireGuard client creation:", err)
 	}
-	defer wgclient.Close()
+	defer WGclient.Close()
 
-	Log.Debugln("adding WireGuard interfaces")
-	for _, inf := range Conf.Interfaces {
-		dev, err := wgclient.Device(inf.Name)
-		if err != nil {
-			Log.Fatalln("WireGuard device %v:", inf.Name, err)
-		}
-		if dev.Type != wgtypes.LinuxKernel {
-			Log.Warnf("wrauth is using userspace WireGuard device %v", inf.Name)
-		}
-
-		WGs = append(WGs, struct {
-			*wgtypes.Device
-			data Interface
-		}{dev, inf})
-	}
-
-	Log.Debugln("matching IPs to users")
-	// needs WireGuard setup
-	if err := AddMatches(); err != nil {
-		Log.Fatalln("matching:", err)
+	Log.Debugln("loading configuration")
+	if err = Load(WGclient); err != nil {
+		Log.Fatalln("loading:", err)
 	}
 
 	C, err = gnet.NewClient(
@@ -155,8 +107,9 @@ func main() {
 	if err := C.Start(); err != nil {
 		Log.Fatalln("TCP client starting:", err)
 	}
-	Conns = make(chan gnet.Conn, Conf.Authelia.Connections)
+
 	Log.Debugln("creating Authelia connections")
+	Conns = make(chan gnet.Conn, Conf.Authelia.Connections)
 	if err = CreateConnections(C); err != nil {
 		Log.Fatalln(err)
 	}
