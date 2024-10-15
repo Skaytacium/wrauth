@@ -1,6 +1,10 @@
 package main
 
-import "go.uber.org/zap"
+import (
+	"regexp"
+
+	"go.uber.org/zap"
+)
 
 // YAML
 // # db
@@ -21,6 +25,7 @@ type Identity struct {
 type Access struct {
 	Identity `yaml:",inline"`
 	Domains  []string
+	Resource regexp.Regexp
 	Headers  map[string]string
 }
 

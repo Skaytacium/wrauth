@@ -35,6 +35,9 @@ access:
   # REQUIRED: the domains to match
   - domains:
     - 'private.example.com'
+    # OPTIONAL: regex to match for path
+    # NOTE: https://github.com/google/re2/wiki/Syntax
+    resource: '/(cpanel|database).*'
     # EITHER: the users to allow
     users: 
       - 'admin'
@@ -133,7 +136,7 @@ interfaces:
 
 ### Authelia configuration
 
-this is just the recommended Authelia configuration demonstration how it should be used with wrauth. notice how **there are no network based rules**, this is important, so that there are no accidental conflicting rules in wrauth, e.g. wrauth disallows `10.0.0.5` (intended) but Authelia has bypassed that entire network (accidental), so wrauth requests Authelia and it immediately responds with 200 OK, causing wrauth to reply with that.
+this is just the recommended Authelia configuration demonstration how it should be used with wrauth. notice how **there are no conflicting network based rules**, this is important, so that there are no conflicts in authentication, e.g. wrauth disallows `10.0.0.5` (intended) but Authelia has bypassed that entire network (accidental), so wrauth requests Authelia and it immediately responds with 200 OK, causing wrauth to reply with that.
 
 ```yaml
   rules:

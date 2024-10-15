@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -312,6 +313,13 @@ func BenchmarkGetHostString(b *testing.B) {
 func BenchmarkFilepathMatch(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		filepath.Match("*.example.com", "hi.example.com")
+	}
+}
+
+func BenchmarkRegexpMatch(b *testing.B) {
+	r := regexp.MustCompile("/(test|test2|test3).*")
+	for i := 0; i < b.N; i++ {
+		r.Match([]byte("/test2/hi/hello"))
 	}
 }
 

@@ -43,7 +43,7 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		return CompareUIP(&req.XRemote, &m.Ip)
 	})
 	if m != nil {
-		Log.Debugln("IP matched in rules")
+		Log.Debugln("IP matched rules")
 		w := false
 		// i hate this
 		for _, d := range WGs {
@@ -77,21 +77,26 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		}
 		goto response
 	}
-	Log.Debugln("IP not in rules, checking cache")
+	Log.Debugln("IP didn't match any rules, checking cache")
 	if Conf.Caching {
-		AuthCache.RLock()
-		if cid, ok := AuthCache.cache[reqdom][UFStr(req.Cookie[17:17+32])]; ok {
-			Log.Debugf("cached as user: %v", cid)
-			if cid != "" {
-				user := Db.Users[cid]
-				n = HTAuthResGen(res, cid, &user, HT200)
-				id = cid
+		if len(req.Cookie) >= 49 && UFStr(req.Cookie[:17]) == "authelia_session=" {
+			AuthCache.RLock()
+			if cid, ok := AuthCache.cache[reqdom][UFStr(req.Cookie[17:17+32])]; ok {
+				Log.Debugf("cached as user: %v", cid)
+				if cid != "" {
+					user := Db.Users[cid]
+					n = HTAuthResGen(res, cid, &user, HT200)
+					id = cid
+				}
+				AuthCache.RUnlock()
+				goto response
 			}
+			// i hate writing this again
 			AuthCache.RUnlock()
-			goto response
+			Log.Debugln("cache missed")
+		} else {
+			Log.Debugln("cookie is not valid")
 		}
-		// i hate writing this again
-		AuthCache.RUnlock()
 	}
 
 	// it takes ~300/330us for the entire request,
@@ -107,7 +112,7 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 	//
 	// if true is used for allowing goto statements
 	if true {
-		Log.Debugln("cache missed, subrequesting Authelia")
+		Log.Debugln("subrequesting Authelia")
 		// ~10-15us
 		notif := make(chan int)
 		// ~40-50 us
@@ -165,6 +170,7 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 	}
 headers:
 	if h := Cache[reqdom][id]; len(h) > 0 {
+		Log.Debugln("custom headers found")
 		n += copy(res[n:], h)
 	}
 
