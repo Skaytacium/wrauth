@@ -62,11 +62,10 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		}
 		if allowed && regex {
 			Log.Debugln("regex match required:", r.String())
-			regex = r.Match(GetResource(req.XURL))
+			allowed = r.Match(GetResource(req.XURL))
 		}
 		Log.Debugln("allowed in domain:", allowed)
-		Log.Debugln("regex matched:", regex)
-		if allowed && regex {
+		if allowed {
 			user := Db.Users[m.Id]
 			n = HTAuthResGen(res, m.Id, &user, HT200)
 			id = m.Id
