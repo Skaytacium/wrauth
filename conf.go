@@ -84,9 +84,6 @@ func CheckDB() error {
 }
 
 func WatchFS(w *fsnotify.Watcher) {
-	// no clue why write requests happen twice, but simple fix
-	send := true
-
 	for {
 		select {
 		case err, ok := <-w.Errors:
@@ -99,17 +96,14 @@ func WatchFS(w *fsnotify.Watcher) {
 				return
 			}
 			if ev.Op == fsnotify.Write && (strings.Contains(ev.Name, Args.Config) || strings.Contains(ev.Name, Args.DB)) {
-				if send {
-					Log.Infoln("file changed:", ev.Name)
-					Clear()
-					if err := LoadFiles(); err != nil {
-						Log.Fatalln("loading files:", err)
-					}
-					if err := LoadData(); err != nil {
-						Log.Fatalln("processing data:", err)
-					}
+				Log.Infoln("file changed:", ev.Name)
+				Clear()
+				if err := LoadFiles(); err != nil {
+					Log.Fatalln("loading files:", err)
 				}
-				send = !send
+				if err := LoadData(); err != nil {
+					Log.Fatalln("processing data:", err)
+				}
 			}
 		}
 	}
