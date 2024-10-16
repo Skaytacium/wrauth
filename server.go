@@ -31,8 +31,8 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 	}
 
 	HTAuthReqParse(data, &req)
-	// used a lot
-	reqdom := UFStr(GetHost(req.XURL))
+	// used a lot, convenience
+	reqdom, valc := UFStr(GetHost(req.XURL)), len(req.Cookie) >= 49 && UFStr(req.Cookie[:17]) == "authelia_session="
 
 	Log.Debugln("IP:", req.XRemote)
 	Log.Debugln("domain:", reqdom)
@@ -78,25 +78,21 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		goto response
 	}
 	Log.Debugln("IP didn't match any rules, checking cache")
-	if Conf.Caching {
-		if len(req.Cookie) >= 49 && UFStr(req.Cookie[:17]) == "authelia_session=" {
-			AuthCache.RLock()
-			if cid, ok := AuthCache.cache[reqdom][UFStr(req.Cookie[17:17+32])]; ok {
-				Log.Debugln("cached as user:", cid)
-				if cid != "" {
-					user := Db.Users[cid]
-					n = HTAuthResGen(res, cid, &user, HT200)
-					id = cid
-				}
-				AuthCache.RUnlock()
-				goto headers
+	if Conf.Caching && valc {
+		AuthCache.RLock()
+		if cid, ok := AuthCache.cache[reqdom][UFStr(req.Cookie[17:17+32])]; ok {
+			Log.Debugln("cached as user:", cid)
+			if cid != "" {
+				user := Db.Users[cid]
+				n = HTAuthResGen(res, cid, &user, HT200)
+				id = cid
 			}
-			// i hate writing this again
 			AuthCache.RUnlock()
-			Log.Debugln("cache missed")
-		} else {
-			Log.Debugln("cookie is not valid")
+			goto headers
 		}
+		// i hate writing this again
+		AuthCache.RUnlock()
+		Log.Debugln("cache missed")
 	}
 
 	// it takes ~300/330us for the entire request,
@@ -135,6 +131,9 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		// ~30-50us
 		Conns <- cc
 
+		subres := HTAuthRes{}
+		HTAuthResParse(res, &subres)
+		Log.Debugln("subrequest status:", subres.Stat)
 		// this does mean that a new entry will be created for each
 		// Authelia request, and yeah that's an edge case that would
 		// take some programming to account for, but if that edge
@@ -143,37 +142,31 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		// also, don't cache on 401s, these are meant to be asked to
 		// the Authelia server (so that it can actually perform authentication)
 		// ASCII 1
-		if Conf.Caching {
-			subres := HTAuthRes{}
-			HTAuthResParse(res, &subres)
-			Log.Debugln("subrequest status:", subres.Stat)
+		if Conf.Caching && subres.Stat != HT401 && valc {
+			// convert using string here, so as to copy the byte slice
+			// instead of reusing, since it's dependent on `res`, which
+			// doesn't get released only reused
+			id = string(subres.Id)
+			Log.Debugln("subrequest user:", id)
 
-			if subres.Stat != HT401 {
-				// convert using string here, so as to copy the byte slice
-				// instead of reusing, since it's dependent on `res`, which
-				// doesn't get released only reused
-				id = string(subres.Id)
-				Log.Debugln("subrequest user:", id)
+			AuthCache.RLock()
+			sub, ok := AuthCache.cache[reqdom]
+			AuthCache.RUnlock()
 
-				AuthCache.RLock()
-				sub, ok := AuthCache.cache[reqdom]
-				AuthCache.RUnlock()
-
-				Log.Debugln("caching subrequest response")
-				if !ok {
-					sub = make(map[string]string)
-				}
-
-				sub[UFStr(req.Cookie[17:32+17])] = id
-				AuthCache.Lock()
-				AuthCache.cache[reqdom] = sub
-				AuthCache.Unlock()
-
-				user := Db.Users[UFStr(subres.Id)]
-				n = HTAuthResGen(res, UFStr(subres.Id), &user, subres.Stat)
-				goto headers
+			Log.Debugln("caching subrequest response")
+			if !ok {
+				sub = make(map[string]string)
 			}
+			sub[UFStr(req.Cookie[17:32+17])] = id
+			AuthCache.Lock()
+			AuthCache.cache[reqdom] = sub
+			AuthCache.Unlock()
+
+			user := Db.Users[UFStr(subres.Id)]
+			n = HTAuthResGen(res, UFStr(subres.Id), &user, subres.Stat)
+			goto headers
 		}
+		Log.Debugln("not caching subrequest")
 		goto response
 	}
 headers:
