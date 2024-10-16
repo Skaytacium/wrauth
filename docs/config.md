@@ -31,35 +31,28 @@ rules:
     # REQUIRED: the user to designate
     user: 'alice'
     # OR: the public keys (from WireGuard) to match
-  - pubkeys: 
-      - 'MJ6JoquFLTf419V5dzkcV1z8TY8SIuPyaSH/1SBBP1o='
+  - pubkeys: [ 'MJ6JoquFLTf419V5dzkcV1z8TY8SIuPyaSH/1SBBP1o=' ]
     user: 'bob'
 
 # REQUIRED: access control rules
 access:
   # REQUIRED: the domains to match
-  - domains:
-    - 'private.example.com'
+  - domains: [ 'private.example.com' ]
     # OPTIONAL: regex to match for path
     # NOTE: https://github.com/google/re2/wiki/Syntax
     resource: '/(cpanel|database).*'
     # EITHER: the users to allow
-    users: 
-      - 'admin'
+    users: [ 'admin' ]
     # OR: the groups to allow
     groups:
-      - - 'trusted'
+      - [ 'trusted' ]
   # NOTE: https://pkg.go.dev/path/filepath#Match
   # NOTE: you CANNOT bypass a glob, this is by design
-  - domains:
-    - '*.example.com'
-    users:
-      - 'superadmin'
-  - domains:
-    - 'public.example.com'
-    users:
-      # NOTE: allow all users (this is how you bypass)
-      - '*'
+  - domains: [ '*.example.com' ]
+    users: [ 'superadmin' ]
+  - domains: [ 'public.example.com' ]
+    # NOTE: allow all users (this is how you bypass)
+    users: [ '*' ]
   - domains: 
     - 'test.example.com'
     - 'devdb.example.com'
@@ -78,8 +71,7 @@ access:
 
 # REQUIRED: site admin rules
 admins:
-  users: 
-    - 'admin'
+  users: [ 'admin' ]
   groups:
     - - 'admins'
     - - 'sys'
@@ -147,7 +139,7 @@ interfaces:
 
 ### Authelia configuration
 
-this is just the recommended Authelia configuration demonstration how it should be used with wrauth. notice how **there are no conflicting network based rules**, this is important, so that there are no conflicts in authentication, e.g. wrauth disallows `10.0.0.5` (intended) but Authelia has bypassed that entire network (accidental), so wrauth requests Authelia and it immediately responds with 200 OK, causing wrauth to reply with that.
+this is just the recommended Authelia configuration demonstration how it should be used with wrauth. notice how **there are no conflicting network based rules**, this is important, so that there are no conflicts in authentication, e.g. wrauth disallows or doesn't match `10.0.0.5` (intended) but Authelia has bypassed that entire network (accidental), so wrauth requests Authelia and it immediately responds with 200 OK, causing wrauth to reply with that.
 
 ```yaml
   rules:
