@@ -68,7 +68,7 @@ there's quite a bit left for the first complete release, which I'll do on a slow
     - check that the user is truly over HTTPS
 - tighter security
     - ~~actually verify that matched IP addresses are active from WireGuard interfaces~~ *offloaded to the firewall*
-    - recheck entire codebase, test edge cases
+    - ~~recheck entire codebase, test edge cases~~
     - ~~perhaps a better way to cache?~~
 - go even faster...
     - somehow manage to benchmark HTTP over unix domain sockets
@@ -78,7 +78,7 @@ there's quite a bit left for the first complete release, which I'll do on a slow
     - seperate Authelia specific code, so that adding other authentication backgrounds isn't hard
 - QoL
     - ~~add proper support for multiple domains~~
-    - add fast regexp for site-specific headers
+    - ~~add fast regexp for domain matching~~
     - ~~better panic handling~~
     - ~~increase verbosity on debug mode~~
     - ~~safer code (in the memory sense, some of the optimized functions are quite "raw")~~

@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"path/filepath"
+	"regexp"
 	"sync"
 	"time"
 
@@ -34,6 +35,9 @@ var AuthCache struct {
 
 // host -> user -> headers
 var Cache map[string]map[string][]byte
+
+// host -> user -> regexp
+var Regexps map[string]map[string]*regexp.Regexp
 
 var Log *zap.SugaredLogger
 var C *gnet.Client

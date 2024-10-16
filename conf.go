@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
@@ -129,6 +130,7 @@ func Clear() {
 	Db = DB{}
 	Matches = nil
 	Cache = make(map[string]map[string][]byte)
+	Regexps = make(map[string]map[string]*regexp.Regexp)
 }
 
 func LoadFiles() error {

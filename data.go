@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
@@ -98,13 +99,22 @@ func AddCache() error {
 			if _, ok := Cache[d]; !ok {
 				Cache[d] = make(map[string][]byte)
 			}
+			if _, ok := Regexps[d]; a.Resource.String() != "" && !ok {
+				Regexps[d] = make(map[string]*regexp.Regexp)
+			}
 			if len(a.Identity.Users) == 1 && a.Identity.Users[0] == "*" {
 				Cache[d]["*"] = append(Cache[d]["*"], AddHeaders(a.Headers)...)
+				if a.Resource.String() != "" {
+					Regexps[d]["*"] = &a.Resource
+				}
 				continue
 			}
 			for u := range Db.Users {
 				if UserIn(u, a.Identity) {
 					Cache[d][u] = append(Cache[d][u], AddHeaders(a.Headers)...)
+					if a.Resource.String() != "" {
+						Regexps[d][u] = &a.Resource
+					}
 				}
 			}
 		}

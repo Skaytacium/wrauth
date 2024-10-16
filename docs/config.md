@@ -14,6 +14,11 @@ options with `EITHER:` and `OR:` are not mutually exclusive, i.e. `rules` entrie
 
 wrauth doesn't watch the Authelia user database, but it parses that on file change. to reload it, just write something (like a comment) to one of the watched `yaml` files and it will be reloaded.
 
+access rules are NOT matched sequentially, it is specifically in the order:
+- bypasses
+- direct
+- globs
+
 ### wrauth db
 
 ```yaml
@@ -45,6 +50,7 @@ access:
     groups:
       - - 'trusted'
   # NOTE: https://pkg.go.dev/path/filepath#Match
+  # NOTE: you CANNOT bypass a glob, this is by design
   - domains:
     - '*.example.com'
     users:

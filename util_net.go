@@ -96,6 +96,15 @@ func GetHost(url []byte) []byte {
 	}
 }
 
+func GetResource(url []byte) []byte {
+	// skip https://x.x (11)
+	if i := LFind(url[11:], '/'); i != 0xffffffff {
+		return url[11+i:]
+	} else {
+		return []byte("/")
+	}
+}
+
 // HTTP parsers, faster than O(n)
 func HTAuthReqParse(data []byte, h *HTAuthReq) {
 	// current index, previous index, headers received

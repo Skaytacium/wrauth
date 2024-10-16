@@ -36,6 +36,7 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 
 	Log.Debugln("IP:", req.XRemote)
 	Log.Debugln("domain:", reqdom)
+	Log.Debugln("resource:", UFStr(GetResource(req.XURL)))
 	Log.Debugln("cookie:", UFStr(req.Cookie))
 
 	m := CFind(&Matches, func(m Match) bool {
@@ -43,21 +44,29 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 	})
 	if m != nil {
 		Log.Debugln("IP matched user:", m.Id)
-		_, allowed := Cache[reqdom][m.Id]
+		_, allowed := Cache[reqdom]["*"]
+		r, regex := Regexps[reqdom]["*"]
 		if !allowed {
-			Log.Debugln("direct match doesn't exist, checking bypasses")
-			_, allowed = Cache[reqdom]["*"]
+			Log.Debugln("not bypassed, checking direct matches")
+			_, allowed = Cache[reqdom][m.Id]
+			r, regex = Regexps[reqdom][m.Id]
 		}
 		if !allowed {
-			Log.Debugln(reqdom, "not bypassed, checking globs")
+			Log.Debugln(reqdom, "no direct matches, checking globs")
 			for u, sub := range Cache {
 				if g, err := filepath.Match(u, reqdom); g && err == nil {
 					_, allowed = sub[m.Id]
+					r, regex = Regexps[u][m.Id]
 				}
 			}
 		}
-		Log.Debugln("allowed in domains:", allowed)
-		if allowed {
+		if allowed && regex {
+			Log.Debugln("regex match required:", r.String())
+			regex = r.Match(GetResource(req.XURL))
+		}
+		Log.Debugln("allowed in domain:", allowed)
+		Log.Debugln("regex matched:", regex)
+		if allowed && regex {
 			user := Db.Users[m.Id]
 			n = HTAuthResGen(res, m.Id, &user, HT200)
 			id = m.Id
