@@ -48,7 +48,7 @@ import (
 // 	return hash
 // }
 
-func addMatch(ip IP, name string) error {
+func addIfMissing(ip IP, name string) error {
 	if CFind(&Matches, func(a Match) bool {
 		return CompareUIP(&ip, &a.Ip)
 	}) == nil {
@@ -70,21 +70,21 @@ func addMatch(ip IP, name string) error {
 // no clue why these are so inefficient O(n(n + n^4)), but they're only
 // called on file update. and yeah it's inefficient but it's not too slow,
 // since n is usually quite small
-func AddMatches() error {
+func AddMatches(infs []*wgtypes.Device) error {
 	for _, v := range Db.Rules {
 		for _, k := range v.Pubkeys {
-			for _, wg := range WGInfs {
+			for _, wg := range infs {
 				for _, ip := range CFind(&wg.Peers, func(a wgtypes.Peer) bool {
 					return a.PublicKey.String() == k
 				}).AllowedIPs {
-					if err := addMatch(ConvIP(ip), v.User); err != nil {
+					if err := addIfMissing(ConvIP(ip), v.User); err != nil {
 						return err
 					}
 				}
 			}
 		}
 		for _, i := range v.Ips {
-			if err := addMatch(i, v.User); err != nil {
+			if err := addIfMissing(i, v.User); err != nil {
 				return err
 			}
 		}

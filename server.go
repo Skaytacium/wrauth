@@ -2,7 +2,6 @@ package main
 
 import (
 	"path/filepath"
-	"time"
 
 	"github.com/panjf2000/gnet/v2"
 )
@@ -44,21 +43,6 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 	})
 	if m != nil {
 		Log.Debugln("IP matched user:", m.Id)
-		w := false
-		// i hate this
-		for _, d := range WGInfs {
-			for _, p := range d.Peers {
-				for _, a := range p.AllowedIPs {
-					ip := ConvIP(a)
-					// i hate this as well
-					if CompareUIP(&req.XRemote, &ip) && p.LastHandshakeTime.Add(time.Duration(d.data.Shake)*time.Second).After(time.Now()) {
-						w = true
-						goto active
-					}
-				}
-			}
-		}
-	active:
 		_, allowed := Cache[reqdom][m.Id]
 		if !allowed {
 			Log.Debugln("direct match doesn't exist, checking bypasses")
@@ -72,9 +56,8 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 				}
 			}
 		}
-		Log.Debugln("active over WireGuard:", w)
 		Log.Debugln("allowed in domains:", allowed)
-		if w && allowed {
+		if allowed {
 			user := Db.Users[m.Id]
 			n = HTAuthResGen(res, m.Id, &user, HT200)
 			id = m.Id

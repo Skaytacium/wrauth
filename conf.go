@@ -128,7 +128,6 @@ func Clear() {
 	}
 	Db = DB{}
 	Matches = nil
-	WGInfs = nil
 	Cache = make(map[string]map[string][]byte)
 }
 
@@ -156,8 +155,9 @@ func LoadData() error {
 		return fmt.Errorf("caching: %w", err)
 	}
 
+	var infs []*wgtypes.Device
 	for _, inf := range Conf.Interfaces {
-		dev, err := WGClient.Device(inf.Name)
+		dev, err := wgclient.Device(inf.Name)
 		if err != nil {
 			return fmt.Errorf("WireGuard device %v: %w", inf.Name, err)
 		}
@@ -166,15 +166,12 @@ func LoadData() error {
 		}
 
 		Log.Debugln("adding interface:", inf.Name)
-		WGInfs = append(WGInfs, struct {
-			*wgtypes.Device
-			data Interface
-		}{dev, inf})
+		infs = append(infs, dev)
 	}
 
 	Log.Debugln("adding IP matches")
 	// needs WireGuard setup
-	if err := AddMatches(); err != nil {
+	if err := AddMatches(infs); err != nil {
 		return fmt.Errorf("matching: %w", err)
 	}
 	return nil

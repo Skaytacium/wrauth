@@ -11,7 +11,6 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"golang.zx2c4.com/wireguard/wgctrl"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 var Args struct {
@@ -22,11 +21,7 @@ var Args struct {
 var Conf Config
 var Db DB
 var Matches []Match
-var WGClient *wgctrl.Client
-var WGInfs []struct {
-	*wgtypes.Device
-	data Interface
-}
+var wgclient *wgctrl.Client
 
 // on some revelations, maps are the fastest way to do
 // anything out here and theyre equally safe
@@ -85,11 +80,11 @@ func main() {
 		Log.Fatalln("filesytem watch:", err)
 	}
 
-	WGClient, err = wgctrl.New()
+	wgclient, err := wgctrl.New()
 	if err != nil {
 		Log.Fatalln("WireGuard client creation:", err)
 	}
-	defer WGClient.Close()
+	defer wgclient.Close()
 
 	if err := LoadData(); err != nil {
 		Log.Fatalln("processing data:", err)
