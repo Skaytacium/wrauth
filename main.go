@@ -21,7 +21,7 @@ var Args struct {
 var Conf Config
 var Db DB
 var Matches []Match
-var wgclient *wgctrl.Client
+var WGClient *wgctrl.Client
 
 // on some revelations, maps are the fastest way to do
 // anything out here and theyre equally safe
@@ -80,11 +80,11 @@ func main() {
 		Log.Fatalln("filesytem watch:", err)
 	}
 
-	wgclient, err := wgctrl.New()
+	WGClient, err = wgctrl.New()
 	if err != nil {
 		Log.Fatalln("WireGuard client creation:", err)
 	}
-	defer wgclient.Close()
+	defer WGClient.Close()
 
 	if err := LoadData(); err != nil {
 		Log.Fatalln("processing data:", err)

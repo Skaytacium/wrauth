@@ -157,7 +157,7 @@ func LoadData() error {
 
 	var infs []*wgtypes.Device
 	for _, inf := range Conf.Interfaces {
-		dev, err := wgclient.Device(inf.Name)
+		dev, err := WGClient.Device(inf.Name)
 		if err != nil {
 			return fmt.Errorf("WireGuard device %v: %w", inf.Name, err)
 		}
