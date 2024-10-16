@@ -14,7 +14,7 @@ options with `EITHER:` and `OR:` are not mutually exclusive, i.e. `rules` entrie
 
 wrauth doesn't watch the Authelia user database, but it parses that on file change. to reload it, just write something (like a comment) to one of the watched `yaml` files and it will be reloaded.
 
-access rules are NOT matched sequentially, it is specifically in the order:
+IP rules are matched sequentially, but access rules are not. it's in the order:
 - bypasses
 - direct
 - globs
