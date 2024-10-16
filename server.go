@@ -57,6 +57,9 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 				if g, err := filepath.Match(u, reqdom); g && err == nil {
 					_, allowed = sub[m.Id]
 					r, regex = Regexps[u][m.Id]
+					if allowed {
+						break
+					}
 				}
 			}
 		}
@@ -86,7 +89,7 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 					id = cid
 				}
 				AuthCache.RUnlock()
-				goto response
+				goto headers
 			}
 			// i hate writing this again
 			AuthCache.RUnlock()
@@ -143,24 +146,32 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		if Conf.Caching {
 			subres := HTAuthRes{}
 			HTAuthResParse(res, &subres)
-
 			Log.Debugln("subrequest status:", subres.Stat)
-			if subres.Stat != HT401 {
-				AuthCache.RLock()
-				umap, ok := AuthCache.cache[reqdom]
-				AuthCache.RUnlock()
-				if !ok {
-					Log.Debugln("caching subrequest response")
-					AuthCache.Lock()
-					umap = make(map[string]string)
-					// convert using string here, so as to copy the byte slice
-					// instead of reusing, since it's dependent on `res`, which
-					// doesn't get released only reused
-					umap[UFStr(req.Cookie[17:32+17])] = string(subres.Id)
 
-					AuthCache.cache[reqdom] = umap
-					AuthCache.Unlock()
+			if subres.Stat != HT401 {
+				// convert using string here, so as to copy the byte slice
+				// instead of reusing, since it's dependent on `res`, which
+				// doesn't get released only reused
+				id = string(subres.Id)
+				Log.Debugln("subrequest user:", id)
+
+				AuthCache.RLock()
+				sub, ok := AuthCache.cache[reqdom]
+				AuthCache.RUnlock()
+
+				Log.Debugln("caching subrequest response")
+				if !ok {
+					sub = make(map[string]string)
 				}
+
+				sub[UFStr(req.Cookie[17:32+17])] = id
+				AuthCache.Lock()
+				AuthCache.cache[reqdom] = sub
+				AuthCache.Unlock()
+
+				user := Db.Users[UFStr(subres.Id)]
+				n = HTAuthResGen(res, UFStr(subres.Id), &user, subres.Stat)
+				goto headers
 			}
 		}
 		goto response
