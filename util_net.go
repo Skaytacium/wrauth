@@ -25,6 +25,9 @@ func ParseUIP(data []byte, addr *uint32) error {
 			set++
 			continue
 		}
+		if rad > 2 || data[i] == ':' {
+			return fmt.Errorf("IPv6 addresses are unsupported")
+		}
 		tmp += uint32((data[i] - '0') * rarr[rad])
 		rad++
 	}
@@ -33,9 +36,8 @@ func ParseUIP(data []byte, addr *uint32) error {
 
 	if set != 3 {
 		return fmt.Errorf("address not in proper format")
-	} else {
-		return nil
 	}
+	return nil
 }
 
 // ~7x faster than net.ParseCIDR
@@ -61,6 +63,9 @@ func ParseUCIDR(data []byte, addr *uint32, mask *uint32) error {
 			set++
 			continue
 		}
+		if rad > 2 || data[i] == ':' {
+			return fmt.Errorf("IPv6 addresses are unsupported")
+		}
 		tmp += uint32((data[i] - '0') * rarr[rad])
 		rad++
 	}
@@ -69,9 +74,8 @@ func ParseUCIDR(data []byte, addr *uint32, mask *uint32) error {
 
 	if set != 4 {
 		return fmt.Errorf("address not in CIDR format")
-	} else {
-		return nil
 	}
+	return nil
 }
 
 // ~15x faster than net.IP.Equal
@@ -91,22 +95,20 @@ func GetHost(url []byte) []byte {
 	// skip https:// (8)
 	if i := LFind(url[8:], '/'); i != 0xffffffff {
 		return url[8 : i+8]
-	} else {
-		return url[8:]
 	}
+	return url[8:]
 }
 
 func GetResource(url []byte) []byte {
 	// skip https://x.x (11)
 	if i := LFind(url[11:], '/'); i != 0xffffffff {
 		return url[11+i:]
-	} else {
-		return []byte("/")
 	}
+	return []byte("/")
 }
 
 // HTTP parsers, faster than O(n)
-func HTAuthReqParse(data []byte, h *HTAuthReq) {
+func HTAuthReqParse(data []byte, h *HTAuthReq) error {
 	// current index, previous index, headers received
 	n, p, c := 1, 1, 0
 
@@ -141,29 +143,42 @@ func HTAuthReqParse(data []byte, h *HTAuthReq) {
 			n += 15
 			switch data[n] {
 			case ':':
+				if data[n-1] != 'r' {
+					goto found
+				}
 				n += 2
 				p = n
 				n += LFind(data[n:], '\r')
-				ParseUIP(data[p:n], &h.XRemote.Addr)
+				if err := ParseUIP(data[p:n], &h.XRemote.Addr); err != nil {
+					return fmt.Errorf("parsing IP address: %w", err)
+				}
 				// all received IPs are /32 by default
 				h.XRemote.Mask = 0xffffffff
 				c++
+				goto found
 			case 'o':
 				n += 4
 				p = n
 				n += LFind(data[n:], '\r')
 				h.XMethod = data[p:n]
 				c++
+				goto found
 			case ' ':
 				n++
 				p = n
 				n += LFind(data[n:], '\r')
 				h.XURL = data[p:n]
 				c++
+				goto found
 			default:
 				n += LFind(data[n:], '\r')
+				goto found
 			}
 		case 'C':
+			// Content-*, Cache-*, Cross-* will all match, avoid confusion
+			if data[n+3] != 'k' {
+				goto found
+			}
 			// skip till starting
 			// ookie:_ (8)
 			n += 8
@@ -171,9 +186,11 @@ func HTAuthReqParse(data []byte, h *HTAuthReq) {
 			n += LFind(data[n:], '\r')
 			h.Cookie = data[p:n]
 			c++
+			goto found
 		default:
 			n += LFind(data[n:], '\r')
 		}
+	found:
 		// skip \r\n
 		n += 2
 		// no need to parse further
@@ -181,6 +198,12 @@ func HTAuthReqParse(data []byte, h *HTAuthReq) {
 			break
 		}
 	}
+
+	// not all requests will have a cookie
+	if c < 3 {
+		return fmt.Errorf("missing headers")
+	}
+	return nil
 }
 
 func HTAuthResParse(data []byte, h *HTAuthRes) {

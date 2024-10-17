@@ -3,7 +3,6 @@
 ## nginx
 
 since nginx and Authelia support is first-party, there is not much additional configuration required.
-- **remove `X-Forwarded-URI` and `X-Forwarded-Ssl` on the auth request**. this is required due to the way wrauth's parser works. ideally, the only headers should be `X-Original-Method`, `X-Original-URL` and `X-Forwarded-For`. any headers that are as long as the aforementioned 3 could cause wrauth to bug out silently.
 - change your `auth_request` address.
 - add site specific `auth_request_set` directives.
 
@@ -92,10 +91,6 @@ location /int/auth {
 	internal;
 
 	proxy_pass $auth_server/api/authz/auth-request;
-
-	# add these 2 or any more as mentioned in the docs
-	proxy_set_header X-Forwarded-URI "";
-	proxy_set_header X-Forwarded-Ssl "";
 
 	proxy_set_header X-Original-Method $request_method;
 	proxy_set_header X-Original-URL $scheme://$http_host$request_uri;

@@ -30,7 +30,9 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		Log.Errorf("server: reading request: %v", err)
 	}
 
-	HTAuthReqParse(data, &req)
+	if err := HTAuthReqParse(data, &req); err != nil {
+		Log.Warnf("server: parsing request: %v", err)
+	}
 	// used a lot, convenience
 	reqdom, valc := UFStr(GetHost(req.XURL)), len(req.Cookie) >= 49 && UFStr(req.Cookie[:17]) == "authelia_session="
 
