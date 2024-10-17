@@ -44,15 +44,15 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 	})
 	if m != nil {
 		Log.Debugln("IP matched user:", m.Id)
-		_, allowed := Cache[reqdom]["*"]
-		r, regex := Regexps[reqdom]["*"]
+		_, allowed := Cache[reqdom][m.Id]
+		r, regex := Regexps[reqdom][m.Id]
 		if !allowed {
-			Log.Debugln("not bypassed, checking direct matches")
+			Log.Debugln("no direct matches, checking bypasses")
 			_, allowed = Cache[reqdom][m.Id]
 			r, regex = Regexps[reqdom][m.Id]
 		}
 		if !allowed {
-			Log.Debugln(reqdom, "no direct matches, checking globs")
+			Log.Debugln("no bypasses, checking globs")
 			for u, sub := range Cache {
 				if g, err := filepath.Match(u, reqdom); g && err == nil {
 					_, allowed = sub[m.Id]
