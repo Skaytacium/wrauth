@@ -87,8 +87,8 @@ admins:
 # DEFAULT: 9092
 # NORELOAD
 address: '9093'
-# REQUIRED: the full external address
-external: 'https://wrauth.example.com'
+# REQUIRED: the external address, https is assumed
+external: 'wrauth.example.com'
 # OPTIONAL: enable or disable caching
 # NOTE: this will reduce performance SIGNIFICANTLY if disabled, since proxying Authelia directly reduces performance by ~40%
 # DEFAULT: true
