@@ -23,6 +23,7 @@ func (ev *SHandler) OnClose(_ gnet.Conn, _ error) gnet.Action {
 func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 	req, res, id := HTAuthReq{}, make([]byte, 2048), ""
 	n := HTAuthResGen(res, "", nil, HT403)
+	var m *Match
 
 	// reqs will be max 1kB, TCP buffer should be able to handle that
 	data, err := c.Next(-1)
@@ -36,7 +37,9 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 	// used a lot, convenience
 	reqdom, valc := UFStr(GetHost(req.XURL)), len(req.Cookie) >= 49 && UFStr(req.Cookie[:17]) == "authelia_session="
 	if reqdom == "" {
-		Log.Warnln("")
+		Log.Warnln("server: requested domain is invalid")
+		Log.Debugln(string(data))
+		goto response
 	}
 
 	Log.Debugln("IP:", req.XRemote)
@@ -44,7 +47,7 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 	Log.Debugln("resource:", UFStr(GetResource(req.XURL)))
 	Log.Debugln("cookie:", UFStr(req.Cookie))
 
-	m := CFind(&Matches, func(m Match) bool {
+	m = CFind(&Matches, func(m Match) bool {
 		return CompareUIP(&req.XRemote, &m.Ip)
 	})
 	if m != nil {
