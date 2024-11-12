@@ -56,8 +56,8 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		r, regex := Regexps[reqdom][m.Id]
 		if !allowed {
 			Log.Debugln("no direct matches, checking bypasses")
-			_, allowed = Cache[reqdom][m.Id]
-			r, regex = Regexps[reqdom][m.Id]
+			_, allowed = Cache[reqdom]["*"]
+			r, regex = Regexps[reqdom]["*"]
 		}
 		if !allowed {
 			Log.Debugln("no bypasses, checking globs")
