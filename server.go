@@ -27,14 +27,17 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 	// reqs will be max 1kB, TCP buffer should be able to handle that
 	data, err := c.Next(-1)
 	if err != nil {
-		Log.Errorf("server: reading request: %v", err)
+		Log.Errorln("server: reading request:", err)
 	}
 
 	if err := HTAuthReqParse(data, &req); err != nil {
-		Log.Warnf("server: parsing request: %v", err)
+		Log.Warnln("server: parsing request:", err)
 	}
 	// used a lot, convenience
 	reqdom, valc := UFStr(GetHost(req.XURL)), len(req.Cookie) >= 49 && UFStr(req.Cookie[:17]) == "authelia_session="
+	if reqdom == "" {
+		Log.Warnln("")
+	}
 
 	Log.Debugln("IP:", req.XRemote)
 	Log.Debugln("domain:", reqdom)
@@ -124,7 +127,7 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 		// ~15us
 		_, err = cc.Write(data)
 		if err != nil {
-			Log.Errorf("server: writing Authelia subrequest: %v", err)
+			Log.Errorln("server: writing Authelia subrequest:", err)
 		}
 
 		// ~225us
@@ -180,7 +183,7 @@ headers:
 response:
 	n += copy(res[n:], "\r\n")
 	if _, err = c.Write(res[:n]); err != nil {
-		Log.Errorf("server: writing TCP buffer: %v", err)
+		Log.Errorln("server: writing TCP buffer:", err)
 	}
 	return gnet.None
 }

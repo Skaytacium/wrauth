@@ -158,7 +158,7 @@ func LoadData() error {
 			return fmt.Errorf("WireGuard device %v: %w", inf.Name, err)
 		}
 		if dev.Type != wgtypes.LinuxKernel {
-			Log.Warnf("wrauth is using userspace WireGuard device %v", inf.Name)
+			Log.Warnln("wrauth is using userspace WireGuard device", inf.Name)
 		}
 
 		Log.Debugln("adding interface:", inf.Name)

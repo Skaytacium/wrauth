@@ -23,7 +23,7 @@ func (ev *CHandler) OnClose(_ gnet.Conn, _ error) gnet.Action {
 func (ev *CHandler) OnTraffic(c gnet.Conn) gnet.Action {
 	data, err := c.Next(-1)
 	if err != nil {
-		Log.Errorf("client: reading response: %v", err)
+		Log.Errorln("client: reading response:", err)
 	}
 
 	ctx := c.Context().(SubReq)
