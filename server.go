@@ -36,9 +36,9 @@ func (ev *SHandler) OnTraffic(c gnet.Conn) gnet.Action {
 	}
 	// used a lot, convenience
 	reqdom, valc := UFStr(GetHost(req.XURL)), len(req.Cookie) >= 49 && UFStr(req.Cookie[:17]) == "authelia_session="
-	if UFStr(req.XURL[:8]) != "https://" {
-		Log.Warnln("server: requested domain doesn't start with 'https://'")
-		Log.Debugln(string(data))
+	if len(req.XURL) < 12 {
+		Log.Errorln("server: requested domain isn't valid")
+		Log.Debugln(UFStr(data))
 		goto response
 	}
 
