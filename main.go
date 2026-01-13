@@ -63,8 +63,8 @@ func main() {
 
 	defer Log.Sync()
 
-	Args.Config = *flag.String("config", "./config.yaml", "location of the configuration file")
-	Args.DB = *flag.String("db", "./db.yaml", "location of the database file")
+	flag.StringVar(&Args.Config, "config", "./config.yaml", "location of the configuration file")
+	flag.StringVar(&Args.DB, "db", "./db.yaml", "location of the database file")
 	flag.Parse()
 
 	if err := LoadFiles(); err != nil {
